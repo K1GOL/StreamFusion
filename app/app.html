@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>StreamFusion</title>
+</head>
+<body>
+  <div id="app" class="container">
+    <div class="topBar">
+      <div class="searchBar">
+        <input class="searchBarInput" id="searchInput" placeholder="Search for music" onfocus="this.placeholder = ''" onblur="this.placeholder = 'Search for music'"></input>
+        <div class="platformSelectContainer">
+          <p class="inlineBlock centeredText">Search on:</p>
+          <select class="inlineBlock" id="searchPlatformSelect">
+            <option value="YT">YouTube</option>
+            <option value="SC">SoundCloud</option>
+          </select>
+        </div>
+        <p class="centeredText pressEnterText" id="pressEnterText">Press Enter to search online</p>
+      </div>
+      <div class="loadingBar" id="loadingBar"></div>
+    </div>
+    <div class="sidebar">
+      <span class="playlistSpan" id="yourLibrary">
+        <p class="inlineBlock">Your Library</p>
+      </span>
+      <h2>Playlists</h2>
+      <div class="playlistContainer" id="playlistContainer">
+        <span class="playlistSpan" id="createNewPlaylist">
+          <p class="inlineBlock">+ Create new playlist</p>
+        </span>
+      </div>
+    </div><div class="mainFrame" id="mainFrame">
+    </div>
+  </div>
+  <script src="app.js"></script>
+  <div class="playerControls">
+    <div class="leftSideBlock">
+      <h2 class="lowBottomPadding" id="playerTrackTitle"></h2>
+      <p id="playerTrackArtist"></p>
+    </div>
+    <div class="centerBlock">
+      <div class="controlIconsContainer">
+        <span class="playerControl" id="playerControlShuffle"><img class="playerControlIcon" id="iconPlayerControlShuffle" src="icons/shuffle.png"></span>
+        <span class="playerControl" id="playerControlPrevious"><img class="playerControlIcon" id="iconPlayerControlPrevious" src="icons/previous.png"></span>
+        <span class="playerControl" id="playerControlPlayPause"><img class="playerControlIcon" id="iconPlayerControlPlayPause" src="icons/play.png"></span>
+        <span class="playerControl" id="playerControlNext"><img class="playerControlIcon" id="iconPlayerControlNext" src="icons/next.png"></span>
+        <span class="playerControl" id="playerControlLoop"><img class="playerControlIcon" id="iconPlayerControlLoop" src="icons/loop.png"></span>
+      </div>
+      <div class="slidecontainer">
+        <p class="inlineBlock" id="currentTimeLabel"></p>
+        <input type="range" step="0.001" min="0" max="100" value="0" class="trackProgressSlider inlineBlock" id="trackProgressSlider">
+        <p class="inlineBlock" id="totalDurationlabel"></p>
+      </div>
+    </div>
+    <div class="rightSideBlock">
+      <input type="range" step="1" min="0" max="100" value="50" class="slider volumeSlider" id="volumeSlider">
+      <p id="volumeLabel">Volume 50%</id>
+    </div>
+  </div>
+  <div id="detailsModalContainer" class="modalContainer">
+    <div class="modal">
+      <h2>Are these details correct?</h2>
+      <p class="inlineBlock modalTextLabel">Title</p><input class="inlineBlock normalInput" id="detailsTitle"></input><br>
+      <p class="inlineBlock modalTextLabel">Artist</p><input class="inlineBlock normalInput" id="detailsArtist"></input><br>
+      <button class="normalButton" id="confirmDetailsButton">Confirm</button>
+    </div>
+  </div>
+  <div id="playlistManagerModalContainer" class="modalContainer">
+    <div class="modal">
+      <h2 id="playlistManagerHeading">Select playlists</h2>
+      <div class="playlistManagerListContainer" id="playlistManagerListContainer">
+        <ul id="playlistManagerPlaylistList">
+        </ul>
+      </div>
+      <button class="normalButton" id="playlistManagerConfirmButton">Confirm</button>
+    </div>
+  </div>
+  <div id="newPlaylistModalContainer" class="modalContainer">
+    <div class="modal">
+      <h2>Create new playlist</h2>
+      <p class="inlineBlock modalTextLabel">Name</p><input class="inlineBlock normalInput" id="playlistTitle"></input><br>
+      <button class="normalButton" id="confirmNewPlaylistButton">Confirm</button>
+    </div>
+  </div>
+  <div id="renamePlaylistModalContainer" class="modalContainer">
+    <div class="modal">
+      <h2>Rename playlist</h2>
+      <p class="inlineBlock modalTextLabel">Name</p><input class="inlineBlock normalInput" id="renamePlaylistTitle"></input><br>
+      <button class="normalButton" id="confirmRenamePlaylistButton">Confirm</button>
+    </div>
+  </div>
+</body>
+</html>

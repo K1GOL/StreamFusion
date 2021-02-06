@@ -1,0 +1,518 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap');
+
+:root {
+  --bg-primary: #1d1f21;
+  --bg-secondary: #292c2f;
+  --bg-tertiary: #161719;
+  --bg-light: #b5b7b9;
+
+  --text-primary: #818484;
+  --text-highlight: #b5b7b9;
+  --text-dark: #161719;
+
+  --loadingBar: #44b8ff;
+
+  --topBar-height: 180px;
+  --player-height: 100px;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: sans-serif;
+  color: #525252;
+}
+
+.container {
+  width: 100%;
+  height: 100%;
+}
+
+.topBar {
+  width: 100%;
+  height: var(--topBar-height);
+  background-color: var(--bg-secondary);
+}
+
+.sidebar {
+  float: left;
+  padding: 0;
+  margin: 0;
+  width: 30%;
+  min-width: 160px;
+  height: calc(100% - var(--topBar-height) - var(--player-height));
+  background-color: var(--bg-secondary);
+  overflow-y: none;
+}
+
+.mainFrame {
+  float: right;
+  padding: 0;
+  margin: 0;
+  width: 70%;
+  height: calc(100% - var(--topBar-height) - var(--player-height));
+  background-color: var(--bg-primary);
+  overflow-y: auto;
+}
+
+.searchBar {
+  padding-top:30px;
+}
+
+.searchBarInput {
+  display: block;
+  width: 50%;
+  min-width: 280px;
+  height: 50px;
+  margin-left: auto;
+  margin-right: auto;
+  border: none;
+  background-color: var(--bg-primary);
+  text-align: center;
+  font-style: italic;
+  font-size: 35px;
+  transition-duration: 0.5s;
+  color: var(--text-primary);
+  font-family: 'Rubik', sans-serif;
+}
+
+.searchBarInput:focus {
+  width: 100%;
+  background-color: var(--bg-tertiary);
+  transition-duration: 0.5s;
+  color: var(--text-highlight);
+  outline: none;
+}
+
+.loadingBar {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 10px;
+  opacity: 0;
+  border-radius: 3px;
+  height: 6px;
+  background-color: var(--loadingBar);
+  transition-duration: 0.3s;
+  animation: 2s loadingBarAnimation ease-in infinite;
+}
+
+.pressEnterText {
+  opacity: 0;
+  transition-duration: 1s;
+}
+
+.centeredText {
+  text-align: center;
+}
+
+.lowBottomPadding {
+  padding-bottom: 4px;
+}
+
+.platformSelectContainer {
+  width: 290px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.listItem {
+  display: inline-block;
+  width: 100%;
+  min-height: 95px;
+  padding: 0;
+}
+
+.listItemDuration {
+  float: left;
+}
+
+.listItemIcon {
+  max-height: 16px;
+  top: 50%;
+  transform: translate(0px, 2px);
+}
+
+.iconLabel {
+  padding: 3px;
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 5px;
+  transform: translate(-10px, -40px);
+  font-size: 20px;
+  color: var(--text-dark);
+  visibility: hidden;
+  position: absolute;
+  background-color: var(--bg-light);
+  border-radius: 5px;
+  z-index: 1;
+  box-shadow: 3px 3px 5px var(--bg-secondary);
+  transition-duration: 0.1s;
+  opacity: 0;
+}
+
+.listItemControl:hover .iconLabel {
+  visibility: visible;
+  opacity: 1;
+  transition-duration: 0.1s;
+}
+
+.listItemSourceIcon {
+  padding: 10px;
+  max-height: none;
+  width: 30px;
+}
+
+.darkItem {
+  background-color: var(--bg-primary);
+}
+
+.lightItem {
+  background-color: var(--bg-tertiary);
+}
+
+.listItemControl {
+  position: relative;
+  display: inline-block;
+  max-width: 80%;
+}
+
+.listItemControlClickable {
+  padding: 5px;
+  margin-left: 10px;
+  margin-top: 5px;
+  border-radius: 20px;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+}
+
+.listItemRightSide {
+  float: right;
+  margin-top: -35px;
+}
+
+.listItemArtistName {
+  margin-top: -10px;
+}
+
+.inlineBlock {
+  display: inline-block;
+}
+
+.modalContainer {
+  display: none;
+  position: fixed;
+  opacity: 0;
+  z-index: 1;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+  transition-duration: 0.5s;
+}
+
+.playlistManagerListContainer {
+  width: 100%;
+}
+
+.modal {
+  background-color: var(--bg-secondary);
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 60%;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  transition-duration: 0.5s;
+}
+
+.playerControls {
+  position: fixed;
+  bottom: 0px;
+  height: var(--player-height);
+  width: 100vw;
+  background-color: var(--bg-tertiary);
+}
+
+.leftSideBlock {
+  display: inline-block;
+  height: 100%;
+  width: 30%;
+  float: left;
+}
+
+.centerBlock {
+  display: inline-block;
+  margin: auto;
+  height: 100%;
+  width: 40%;
+}
+
+.rightSideBlock {
+  display: inline-block;
+  float: right;
+  height: 100%;
+  width: 30%;
+}
+
+.slidecontainer {
+  width: 100%;
+  height: 30px;
+}
+
+
+.trackProgressSlider {
+  margin-top: 10px;
+  -webkit-appearance: none;
+  width: calc(100% - 150px);
+  min-width: 120px;
+  height: 10px;
+  background: var(--bg-secondary);
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: 0.2s;
+  border-radius: 5px;
+}
+
+.trackProgressSlider:hover {
+  opacity: 1;
+  height: 16px;
+  margin-top: 7px;
+  transform: translateY(0%);
+  border-radius: 8px;
+}
+
+.trackProgressSlider:hover::-webkit-slider-thumb {
+  height: 25px;
+  width: 14px;
+}
+
+.trackProgressSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 12px;
+  -webkit-transition: 0.2s;
+  background: var(--bg-light);
+  cursor: pointer;
+}
+
+.volumeSlider {
+  -webkit-appearance: none;
+  height: 20px;
+  width: 50%;
+  margin-top: 30px;
+  background: var(--bg-secondary);
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: 0.2s;
+  border-radius: 10px;
+}
+
+.volumeSlider:hover {
+  opacity: 1;
+  height: 25px;
+  border-radius: 8px;
+}
+
+.volumeSlider:hover::-webkit-slider-thumb {
+  height: 30px;
+  width: 14px;
+}
+
+.volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  -webkit-transition: 0.2s;
+  background: var(--bg-light);
+  cursor: pointer;
+}
+
+.playerControl {
+  display: inline-block;
+  border-radius: 17px;
+  width: 34px;
+  height: 34px;
+  margin: 2px;
+  background-color: var(--bg-light);
+  border: 3px solid var(--bg-primary);
+  transition-duration: 0.3s;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.playerControl:hover {
+  opacity: 1;
+}
+
+.playerControlIcon {
+  width: 30px;
+  height: 30px;
+  margin: 2px;
+}
+
+.controlIconsContainer {
+  padding: 5px;
+  width: 238px;
+  margin-left: calc((100% - 238px) / 2);
+}
+
+.normalInput {
+  background-color: var(--bg-primary);
+  transition-duration: 0.3s;
+  color: var(--text-primary);
+  border: none;
+  outline: none;
+  height: 25px;
+  font-size: 20px;
+  width: 80%;
+  padding: 2px;
+  font-family: 'Rubik', sans-serif;
+}
+
+.normalInput:focus {
+  background-color: var(--bg-tertiary);
+  transition-duration: 0.3s;
+  color: var(--text-highlight);
+}
+
+.normalButton {
+  background-color: var(--bg-primary);
+  transition-duration: 0.3s;
+  border: none;
+  color: var(--text-primary);
+  outline: none;
+  height: 27px;
+  padding: 4px;
+  font-family: 'Rubik', sans-serif;
+}
+
+.normalButton:hover {
+  background-color: var(--bg-tertiary);
+  transition-duration: 0.3s;
+  color: var(--text-highlight);
+}
+
+.modalTextLabel {
+  width: 55px;
+}
+
+.playlistContainer {
+  height: calc(100% - 40px);
+  width: 100%;
+  overflow-x: none;
+  overflow-y: auto;
+}
+
+.playlistSpan {
+  display: inline-block;
+  background-color: var(--bg-secondary);
+  width: 100%;
+  height: 39px;
+  border: solid var(--bg-tertiary);
+  border-width: 0 0 2px 0;
+  transition-duration: 0.3s;
+}
+
+.playlistSpan:hover {
+  background-color: var(--bg-primary) !important;
+  transition-duration: 0.3s;
+  cursor: pointer;
+}
+
+.playlistSpan:active {
+  background-color: var(--bg-tertiary);
+  transition-duration: 0.1s;
+  cursor: pointer;
+}
+
+.playlistSpanClickableArea {
+  width: calc(100% - 80px);
+  height: 80%;
+  display: inline-block;
+  float: right;
+  white-space: nowrap;
+}
+
+.playlistCheckbox {
+  appearance: none;
+  background-color: var(--bg-light);
+}
+
+#currentTimeLabel {
+  width: 40px;
+}
+
+h2 {
+  margin: 0;
+  padding: 10px;
+  color: var(--text-primary);
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+h3 {
+  margin: 0;
+  padding: 10px;
+  color: var(--text-primary);
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+}
+
+p, li {
+  margin: 0;
+  padding: 10px;
+  color: var(--text-primary);
+  font-family: 'Rubik', sans-serif;
+}
+
+li {
+  padding: 5px;
+  font-size: 20px;
+}
+
+select {
+  height: 39px;
+  margin-top: 10px;
+  outline: none;
+  border: none;
+  background-color: var(--bg-primary);
+  font-family: 'Rubik', sans-serif;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+option {
+  outline: none;
+  border: none;
+}
+
+@keyframes loadingBarAnimation {
+  0%    {width: 0px;}
+  25%   {width: 25%;}
+  49%   {width: 0px;}
+  51%   {width: 0px;}
+  75%   {width: 25%;}
+  100%  {width: 0px;}
+}
