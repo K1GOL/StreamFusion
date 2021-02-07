@@ -17,10 +17,7 @@ import createWindow from "./helpers/window";
 import env from "env";
 
 const setApplicationMenu = () => {
-  const menus = [editMenuTemplate];
-  if (env.name !== "production") {
-    menus.push(devMenuTemplate);
-  }
+  const menus = [editMenuTemplate, devMenuTemplate];
   Menu.setApplicationMenu(Menu.buildFromTemplate(menus));
 };
 

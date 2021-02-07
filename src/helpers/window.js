@@ -19,7 +19,7 @@ export default (name, options) => {
   const restore = () => {
     let restoredState = {};
     try {
-      restoredState = userDataDir.read(stateStoreFile, "json");
+      restoredState = JSON.parse(fs.readFileSync(`${userDataDir}\\${stateStoreFile}`));
     } catch (err) {
       // For some reason json can't be read (might be corrupted).
       // No worries, we have defaults.
@@ -71,7 +71,7 @@ export default (name, options) => {
     if (!win.isMinimized() && !win.isMaximized()) {
       Object.assign(state, getCurrentPosition());
     }
-    userDataDir.write(stateStoreFile, state, { atomic: true });
+    fs.writeFileSync(`${userDataDir}\\${stateStoreFile}`, JSON.stringify(state));
   };
 
   state = ensureVisibleOnSomeDisplay(restore());

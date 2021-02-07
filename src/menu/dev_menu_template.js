@@ -1,7 +1,7 @@
 import { app, dialog, BrowserWindow } from "electron";
 
 export const devMenuTemplate = {
-  label: "Development",
+  label: "Application",
   submenu: [
     {
       label: "Reload",

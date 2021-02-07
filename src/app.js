@@ -17,6 +17,9 @@ const libraryFileDirectory = dataDirectory + '\\library.json';
 const historyFileDirectory = dataDirectory + '\\history.json';
 const optionsFileDirectory = dataDirectory + '\\options.json';
 
+const listItemTemplate = (env.name == 'production' ? 'resources/templates/listItemTemplate.html' : 'templates/listItemTemplate.html');
+const playlistItemTemplate = (env.name == 'production' ? 'resources/templates/playlistItemTemplate.html' : 'templates/playlistItemTemplate.html');
+
 let soundCloud;
 
 // -----
@@ -624,7 +627,7 @@ function searchSoundCloud(searchQuery)
 function displaySearchResults(results, searchSource)
 {
   // Load template for item from html file
-  fs.readFile('app/listItemTemplate.html', 'utf8' , (err, data) => {
+  fs.readFile(listItemTemplate, 'utf8' , (err, data) => {
     if (err) {
       console.error(err)
       return;
@@ -1049,6 +1052,14 @@ function removeMusicFromLibraryFile(id)
   // Read library file and then delete appropriate data
   readLibraryFile(function(){
     delete libraryFileData.music[`track-${id}`];
+
+    // If present in any playlists, remove from those
+    Object.entries(libraryFileData.playlists).forEach(([key, value]) => {
+      if(value['tracks'].includes(id))
+      {
+        value['tracks'].splice(value['tracks'].indexOf(id), 1);
+      }
+    });
 
     writeLibraryFile(function(){
       // Show search results again to properly remove item from UI
@@ -1534,7 +1545,7 @@ function updatePlaylistSidebar()
     document.getElementById('playlistContainer').innerHTML = '';
 
     // Load template for item from html file
-    fs.readFile('app/playlistItemTemplate.html', 'utf8' , (err, data) => {
+    fs.readFile(playlistItemTemplate, 'utf8' , (err, data) => {
       if (err) {
         console.error(err)
         return;
