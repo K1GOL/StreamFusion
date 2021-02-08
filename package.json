@@ -2,14 +2,18 @@
   "name": "streamfusion",
   "productName": "StreamFusion",
   "description": "All-in-one music streaming application",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "private": true,
   "author": "K1GOL",
   "copyright": "© 2021, K1GOL",
   "homepage": "https://github.com/K1GOL/StreamFusion",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/K1GOL/StreamFusion.git"
+  },
   "main": "app/background.js",
   "build": {
-    "appId": "com.k1gol.streamfusion",
+    "appId": "k1gol.streamfusion",
     "asar": false,
     "files": [
       "app/**/*",
@@ -32,10 +36,12 @@
     "e2e": "mocha temp/e2e.js --require source-map-support/register",
     "test": "npm run unit && npm run e2e",
     "start": "node build/start.js",
-    "release": "webpack --config=build/webpack.app.config.js --env=production && electron-builder"
+    "release": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish never",
+    "deploy": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish always"
   },
   "dependencies": {
     "@ffprobe-installer/ffprobe": "^1.1.0",
+    "electron-updater": "^4.3.5",
     "get-audio-duration": "^2.0.3",
     "soundcloud-scraper": "^4.0.3",
     "ytdl-core": "^4.4.5",

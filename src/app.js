@@ -11,7 +11,7 @@ const { shell } = require('electron');
 
 const softwareVersion = app.getVersion();
 
-const dataDirectory = (process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")) + '\\StreamFusion';
+const dataDirectory = (env.name == 'production' ? ((process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")) + '\\StreamFusion') : ((process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")) + '\\StreamFusion (' + env.name + ')'));
 const localMusicDirectory = dataDirectory + '\\music';
 const streamingDirectory = dataDirectory + '\\streaming';
 const libraryFileDirectory = dataDirectory + '\\library.json';
@@ -150,6 +150,7 @@ function startup(){
   } else {
     // Load user settings
     readSettingsFile(() => {
+      loadSettings();
       if(!settings.meta.hasAcceptedToS)
       {
         // Ask user to accept terms and conditions
@@ -479,8 +480,6 @@ function startup(){
           document.getElementById('playerControlShuffle').style.border = "3px solid var(--bg-primary)"
         }
       });
-      // Load user settings
-      loadSettings();
     }
   }, 50);
   // -----
@@ -494,10 +493,13 @@ function readSettingsFile(callback)
   // Read settings file
   try
   {
-    // Parse JSON from file contents
-    settings = JSON.parse(fs.readFileSync(settingsFileDirectory));
-    // Call callback
-    callback();
+    // Read file contents into JSON
+    fs.readFile(settingsFileDirectory, (err, data) => {
+        if (err) throw err;
+        settings = JSON.parse(data);
+        // Done, call callback
+        callback();
+    });
   } catch(err) {
     // Failed to read
     console.error(`Failed to read settings file: ${err}`);

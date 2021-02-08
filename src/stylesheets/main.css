@@ -264,6 +264,10 @@ body {
   color: var(--text-dark);
 }
 
+.listItemControlClickable:hover {
+  cursor: pointer;
+}
+
 .listItemRightSide {
   float: right;
   margin-top: -35px;

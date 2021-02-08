@@ -3,6 +3,7 @@ node_modules
 Thumbs.db
 *.log
 .editorconfig
+electron-builder.yml
 
 /dist
 /temp

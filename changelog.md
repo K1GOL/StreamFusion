@@ -2,6 +2,17 @@
 
 This is a log of all the changes made to StreamFusion
 
+# 1.1.0
+
+### Fixes and changes:
+* Fixed an issue with the settings file failing to be read on first start-up
+* Track controls (play, download, add to library, etc.) now have a pointer cursor when hovered over
+* Updated icon
+
+### New features:
+* Self-updating capabilities
+* User data is now stored per environment
+
 ## 1.0.4
 
 ### Fixes and changes:
