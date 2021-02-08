@@ -233,9 +233,25 @@ function startup(){
   // Menu button event handlers
   // -----
   let awaitMenuLoad = setInterval(() => {
-    if(document.getElementById('menuItem-reload') && document.getElementById('menu'))
+    if(document.getElementById('menuItem-reload') && document.getElementById('windowControl-close') && document.getElementById('menu'))
     {
       clearInterval(awaitMenuLoad);
+
+      // Add event listeners to window controls
+      // Close
+      document.getElementById('windowControl-close').addEventListener('click', () => {
+        quit();
+      });
+
+      // Minimize
+      document.getElementById('windowControl-minimize').addEventListener('click', () => {
+        minimize();
+      });
+
+      // Maximize
+      document.getElementById('windowControl-maximize').addEventListener('click', () => {
+        maximize();
+      });
 
       // Add event listener to open/close menu button
       document.getElementById('openMenuButton').addEventListener('click', () => {
@@ -670,14 +686,12 @@ function libraryErrorCorrection()
           getAudioDurationInSeconds(`${localMusicDirectory}\\${value['id']}.mp3`).then((time) => {
             convertToTimestamp(time, (convertedTimestamp) => {
               value['duration'] = convertedTimestamp;
-              writeLibraryFile(() => {});
             });
           });
         }
-      } else {
-        writeLibraryFile(() => {});
       }
     });
+    writeLibraryFile(() => {});
   });
 }
 
@@ -1422,17 +1436,13 @@ function findMusicById(id, callback)
 
 function readLibraryFile(callback)
 {
-  // This try catch is here because sometimes this fails to read
-  // with SyntaxError: Unexpected end of JSON input.
-  // Seems to read an empty file for some reason, so then just try again
-  // TODO: fix this?
+  // Reads library file, then calls callback
   let retryInterval = setInterval(function(){
     if(!isUsingLibraryFile)
     {
       clearInterval(retryInterval);
       isUsingLibraryFile = true;
       console.log(`Reading library file (${libraryFileDirectory})`);
-      // libraryFileData = JSON.parse(fs.readFileSync(libraryFileDirectory));
 
       fs.readFile(libraryFileDirectory, (err, data) => {
           if (err) throw err;
@@ -2056,73 +2066,111 @@ function managePlaylists(id, title)
 {
   // Start by reading library file
   readLibraryFile(() => {
-    // Show playlist manager
-    document.getElementById('playlistManagerModalContainer').style.display = "block";
-    setTimeout(function(){document.getElementById('playlistManagerModalContainer').style.opacity = 1;}, 100);
-
-    // Set heading text
-    document.getElementById('playlistManagerHeading').innerHTML = `Manage playlists for ${title}`;
-
-    // Clear any previous elements
-    document.getElementById('playlistManagerPlaylistList').innerHTML = '';
-
-    // Prevent modification of library file
-    isUsingLibraryFile = true;
-
-    // Show list of playlists
-    Object.entries(libraryFileData.playlists).forEach(([key, value]) => {
-      // If playlist contains track
-      if(value['tracks'].includes(id))
+    // If not in library, return
+    findMusicById(id, (res) => {
+      if(res)
       {
-        // Does include, append appropriate HTML
-        document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" checked id="CB-${value['id']}"> ${value['name']}</li>`;
+        // Show playlist manager
+        document.getElementById('playlistManagerModalContainer').style.display = "block";
+        setTimeout(function(){document.getElementById('playlistManagerModalContainer').style.opacity = 1;}, 100);
+
+        // Set heading text
+        document.getElementById('playlistManagerHeading').innerHTML = `Manage playlists for ${title}`;
+
+        // Clear any previous elements
+        document.getElementById('playlistManagerPlaylistList').innerHTML = '';
+
+        // Prevent modification of library file
+        isUsingLibraryFile = true;
+
+        // Show list of playlists
+        Object.entries(libraryFileData.playlists).forEach(([key, value]) => {
+          // If playlist contains track
+          if(value['tracks'].includes(id))
+          {
+            // Does include, append appropriate HTML
+            document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" checked id="CB-${value['id']}"> ${value['name']}</li>`;
+          } else {
+            // Does not include, append appropriate HTML
+            document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" id="CB-${value['id']}"> ${value['name']}</li>`;
+          }
+        });
+
+        // Add event handler to confirm button to update playlists
+        document.getElementById('playlistManagerConfirmButton').addEventListener('click', () => {
+          // For each playlist, check if checked, then add/remove track from playlist
+          Array.from(document.getElementsByClassName('playlistCheckbox')).forEach(item => {
+            // Check if checked
+            if(item.checked)
+            {
+              // Check if track is not playlist when should be
+              if(!libraryFileData.playlists[item.id.substring(3)].tracks.includes(id))
+              {
+                // Add to playlist
+                libraryFileData.playlists[item.id.substring(3)].tracks.push(id);
+                console.log(`Added ${id} to playlist ${item.id.substring(3)}`);
+              }
+            } else {
+              // Check if track is in playlist when should not be
+              if(libraryFileData.playlists[item.id.substring(3)].tracks.includes(id))
+              {
+                // Remove from playlist
+                libraryFileData.playlists[item.id.substring(3)].tracks.splice(libraryFileData.playlists[item.id.substring(3)].tracks.indexOf(id), 1);
+                console.log(`Removed ${id} from playlist ${item.id.substring(3)}`);
+              }
+            }
+          });
+
+          // Hide the modal
+          // Opacity is to allow transition, display is to actually hide
+          document.getElementById('playlistManagerModalContainer').style.opacity = 0;
+          setTimeout(function(){document.getElementById('playlistManagerModalContainer').style.display = "none";}, 500);
+
+          // Write to library file
+          writeLibraryFile(() => {
+            console.log(`Updated playlists for ${id}`);
+          });
+
+          // Remove event listener with clone and replace
+          let original = document.getElementById('playlistManagerConfirmButton'),
+          clone = original.cloneNode(true);
+          original.parentNode.replaceChild(clone, original);
+        });
       } else {
-        // Does not include, append appropriate HTML
-        document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" id="CB-${value['id']}"> ${value['name']}</li>`;
+        dialog.showMessageBoxSync({
+          buttons: ['OK'],
+          message: 'You need to add this track to your library before you can add it to a playlist.',
+          defaultId: 0,
+          title: 'Manage playlists'
+        });
+        return;
       }
     });
 
-    // Add event handler to confirm button to update playlists
-    document.getElementById('playlistManagerConfirmButton').addEventListener('click', () => {
-      // For each playlist, check if checked, then add/remove track from playlist
-      Array.from(document.getElementsByClassName('playlistCheckbox')).forEach(item => {
-        // Check if checked
-        if(item.checked)
-        {
-          // Check if track is not playlist when should be
-          if(!libraryFileData.playlists[item.id.substring(3)].tracks.includes(id))
-          {
-            // Add to playlist
-            libraryFileData.playlists[item.id.substring(3)].tracks.push(id);
-            console.log(`Added ${id} to playlist ${item.id.substring(3)}`);
-          }
-        } else {
-          // Check if track is in playlist when should not be
-          if(libraryFileData.playlists[item.id.substring(3)].tracks.includes(id))
-          {
-            // Remove from playlist
-            libraryFileData.playlists[item.id.substring(3)].tracks.splice(libraryFileData.playlists[item.id.substring(3)].tracks.indexOf(id), 1);
-            console.log(`Removed ${id} from playlist ${item.id.substring(3)}`);
-          }
-        }
-      });
-
-      // Hide the modal
-      // Opacity is to allow transition, display is to actually hide
-      document.getElementById('playlistManagerModalContainer').style.opacity = 0;
-      setTimeout(function(){document.getElementById('playlistManagerModalContainer').style.display = "none";}, 500);
-
-      // Write to library file
-      writeLibraryFile(() => {
-        console.log(`Updated playlists for ${id}`);
-      });
-
-      // Remove event listener with clone and replace
-      let original = document.getElementById('playlistManagerConfirmButton'),
-      clone = original.cloneNode(true);
-      original.parentNode.replaceChild(clone, original);
-    });
   });
+}
+
+function quit()
+{
+  app.quit();
+}
+
+function minimize()
+{
+  BrowserWindow.getFocusedWindow().minimize();
+}
+
+function maximize()
+{
+  console.log(BrowserWindow.getFocusedWindow().isMaximized());
+  if(BrowserWindow.getFocusedWindow().isMaximized())
+  {
+    BrowserWindow.getFocusedWindow().unmaximize();
+    document.getElementById('windowControlIcon-maximize').src = 'icons/maximize.png';
+  } else {
+    BrowserWindow.getFocusedWindow().maximize();
+    document.getElementById('windowControlIcon-maximize').src = 'icons/unmaximize.png';
+  }
 }
 
 function convertToTimestamp(input, callback)

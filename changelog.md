@@ -2,6 +2,18 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.0.4
+
+### Fixes and changes:
+* Fixed a bug where the library file error correction would permanently block the library file if it was empty
+* Buttons now have a pointer cursor when hovering over them
+
+### New features:
+* Default window frame replaced with a custom, minimal version
+* Added new keyboard shortcuts:
+  * Ctrl + Shift + I - Dev tools
+  * Ctrl + R - Reload
+
 ## 1.0.3
 
 ### Fixes and changes:
