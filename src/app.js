@@ -442,8 +442,6 @@ function startup(){
       document.getElementById('playerControlLoop').addEventListener("click", function(){
         loop = !loop;
 
-        console.log(`Loop ${loop}`);
-
         // Add/remove a border
         if(loop)
         {
@@ -456,8 +454,6 @@ function startup(){
       // Shuffle
       document.getElementById('playerControlShuffle').addEventListener("click", function(){
         shuffle = !shuffle;
-
-        console.log(`Shuffle ${shuffle}`);
 
         // Add/remove a border
         if(shuffle)
@@ -738,7 +734,6 @@ function search(searchQuery)
 
 function searchLibrary(searchQuery)
 {
-  console.log(`Searching library for ${searchQuery} with playlist ${selectedPlaylist}`)
   let results = [];
   // Search for query in the library
 
@@ -772,7 +767,6 @@ function searchLibrary(searchQuery)
           // Match search query
           if(res["title"].toLowerCase().includes(searchQuery.toLowerCase()) || res["author"].toLowerCase().includes(searchQuery.toLowerCase()) || res["source"].toLowerCase().includes(searchQuery.toLowerCase()))
           {
-            console.log(`${res['id']} was match`);
             // Check that not already in the array
             if(!results.includes(res))
             {
@@ -904,7 +898,6 @@ function searchSoundCloud(searchQuery)
     // Results are ready
     // Turn first 20 results into standard format JSON
     let formattedResults = [];
-    console.log(results);
 
     // Duration in results is in ms
     results.collection.forEach((item) => {
@@ -1046,7 +1039,6 @@ function playPause(id)
     if(musicIsPlaying)
     {
       // Pause
-      console.log(`Pausing ${id}`);
       context.suspend();
       musicIsPlaying = false;
 
@@ -1061,7 +1053,6 @@ function playPause(id)
       }
     } else {
       // Resume
-      console.log(`Resuming ${id}`);
       context.resume();
       musicIsPlaying = true;
       // Update icon
@@ -1076,7 +1067,6 @@ function playPause(id)
   } else {
     // Play was requested for something not playing right now
     // Stop playing if playing
-    console.log(`Playing ${id}`);
     if(musicIsPlaying)
     {
       context.suspend();
@@ -1109,7 +1099,6 @@ function playPause(id)
 function downloadDelete(id)
 {
   // TODO: Fix that download/delete ui text doesnt change when auto added to lib
-  console.log(`Recieved download/delete request for ${id}`);
   // This function is used to download or delete
   // a file from the local music directory.
   // Only supposed to be used for the download/delete ui button
@@ -1440,21 +1429,17 @@ function readLibraryFile(callback)
   let retryInterval = setInterval(function(){
     if(!isUsingLibraryFile)
     {
+      clearInterval(retryInterval);
       isUsingLibraryFile = true;
       console.log(`Reading library file (${libraryFileDirectory})`);
-      // Sometimes on start-up fails to read file,
-      // in that case just try again.
-      try
-      {
-        libraryFileData = JSON.parse(fs.readFileSync(libraryFileDirectory));
-      } catch(err) {
-        isUsingLibraryFile = false;
-        readLibraryFile(() => {callback()});
-      }
-      isUsingLibraryFile = false;
-      clearInterval(retryInterval);
-      callback();
-      isUsingLibraryFile = false;
+      // libraryFileData = JSON.parse(fs.readFileSync(libraryFileDirectory));
+
+      fs.readFile(libraryFileDirectory, (err, data) => {
+          if (err) throw err;
+          libraryFileData = JSON.parse(data);
+          isUsingLibraryFile = false;
+          callback();
+      });
     }
   }, 50);
 }
@@ -1514,7 +1499,7 @@ function createSettingsFile(callback)
         console.error(err);
     }
 
-    console.log(`History JSON file created at ${historyFileDirectory}`);
+    console.log(`Settings JSON file created at ${historyFileDirectory}`);
   });
   callback();
 }
@@ -1548,7 +1533,6 @@ function playMusic(id, _timestamp)
   } else {
     musicPlayingFilename = localMusicDirectory + '\\' + id + '.mp3';
   }
-  console.log(`Playing file ${musicPlayingFilename}`);
 
   // Download to streaming dir if doesn't exist
   // Download to streamingDirectory, then call function again
@@ -1712,7 +1696,6 @@ function onTrackPlaybackEnd()
 {
   if((context.currentTime - contextTimeReference + timestamp) > duration)
   {
-    console.log(`Music playback has ended.`);
     // Clear the interval to stop infinite loop if fails to play next
     clearInterval(awaitTrackEnd);
     // If loop is on, call this function again with timestamp 0
@@ -1924,7 +1907,6 @@ function updatePlaylistSidebar()
             // On click of the playlist element
             document.getElementById(`playlistSpanClickableArea-${value['id']}`).addEventListener('click', () => {
               selectedPlaylist = value['id'];
-              console.log(`Selected playlist ${value['id']}`);
               // Lighten all playlist buttons
               Array.from(document.getElementsByClassName('playlistSpan')).forEach(item => {
                 item.style.backgroundColor = 'var(--bg-secondary)';
@@ -1937,14 +1919,10 @@ function updatePlaylistSidebar()
               // Set everything in play queue from pos 1 forwards to be playlist
               if(musicPlayQueue[0])
               {
-                console.log(`Preserved ${musicPlayQueue[0]} in queue`);
                 let firstInQueue = musicPlayQueue[0];
                 musicPlayQueue = [];
                 musicPlayQueue = value['tracks'];
                 musicPlayQueue.unshift(firstInQueue);
-                console.log(`First in queue ${musicPlayQueue[0]}`);
-                console.log('queue is now');
-                console.log(musicPlayQueue);
               } else {
                 // Queue was empty
                 musicPlayQueue = value['tracks'];
@@ -1985,7 +1963,7 @@ function updatePlaylistSidebar()
 
             // TODO: this
           }
-        }, 50);
+        }, 150);
       });
     });
   });
@@ -2076,7 +2054,6 @@ function createNewPlaylist(name)
 
 function managePlaylists(id, title)
 {
-  console.log(`Showing playlist manager for ${id}`);
   // Start by reading library file
   readLibraryFile(() => {
     // Show playlist manager

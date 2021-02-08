@@ -2,6 +2,12 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.0.3
+
+### Fixes and changes:
+* Fixed a bug where failed to read library file on start-up
+* Fixed a bug with playlists appearing multiple times in the sidebar
+
 ## 1.0.2
 
 ### Fixes and changes:
