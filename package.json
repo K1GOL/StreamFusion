@@ -26,7 +26,13 @@
     "directories": {
       "buildResources": "resources"
     },
-    "publish": null
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "K1GOL",
+        "repo": "StreamFusion"
+      }
+    ]
   },
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
@@ -36,8 +42,8 @@
     "e2e": "mocha temp/e2e.js --require source-map-support/register",
     "test": "npm run unit && npm run e2e",
     "start": "node build/start.js",
-    "release": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish never",
-    "deploy": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish always"
+    "release": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish=never",
+    "deploy": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish=always"
   },
   "dependencies": {
     "@ffprobe-installer/ffprobe": "^1.1.0",
