@@ -2,11 +2,12 @@ const ytsr = require('ytsr');
 const fs = require('fs');
 const ytdl = require('ytdl-core');
 const { getAudioDurationInSeconds } = require('get-audio-duration');
-const dialog = require('electron').remote.dialog;
-const app = require('electron').remote.app;
 const win = require('electron').remote.getCurrentWindow();
 const scraper = require("soundcloud-scraper");
 const https = require('https');
+
+const { dialog, app, BrowserWindow } = require('electron').remote;
+const { shell } = require('electron');
 
 const softwareVersion = app.getVersion();
 
@@ -15,10 +16,13 @@ const localMusicDirectory = dataDirectory + '\\music';
 const streamingDirectory = dataDirectory + '\\streaming';
 const libraryFileDirectory = dataDirectory + '\\library.json';
 const historyFileDirectory = dataDirectory + '\\history.json';
-const optionsFileDirectory = dataDirectory + '\\options.json';
+const settingsFileDirectory = dataDirectory + '\\settings.json';
+const customColorSchemeFileDirectory = dataDirectory + '\\custom_color_scheme.json';
+const colorSchemeFile = dataDirectory + '\\default_color_schemes.json';
 
 const listItemTemplate = (env.name == 'production' ? 'resources/templates/listItemTemplate.html' : 'templates/listItemTemplate.html');
 const playlistItemTemplate = (env.name == 'production' ? 'resources/templates/playlistItemTemplate.html' : 'templates/playlistItemTemplate.html');
+const legalInfo = (env.name == 'production' ? 'resources/templates/legalInfoWindowTemplate.html' : 'templates/legalInfoWindowTemplate.html');
 
 let soundCloud;
 
@@ -38,6 +42,8 @@ let soundCloud;
 // -----
 
 let libraryFileData;
+let settings;
+
 let searchResultCache = [];
 let isUsingLibraryFile = false;
 let soundCloudAPIKey;
@@ -52,6 +58,7 @@ let timestamp = 0;
 let contextTimeReference;
 let freezeProgressBar = false;
 let awaitTrackEnd;
+let menuIsOpen = false;
 
 let loop = false;
 let shuffle = false;
@@ -95,7 +102,7 @@ function startup(){
   // Set window min size
   win.setMinimumSize(600, 500);
 
-  // Check that library file, history file, options file and data directories exist
+  // Check that library file, history file, settings file and data directories exist
   if(!fs.existsSync(dataDirectory))
   {
     fs.mkdirSync(dataDirectory);
@@ -123,9 +130,43 @@ function startup(){
     createHistoryFile(function(){});
   }
 
-  if(!fs.existsSync(optionsFileDirectory))
+  if(!fs.existsSync(customColorSchemeFileDirectory))
   {
-    createOptionsFile(function(){});
+    createCustomColorFile(function(){});
+  }
+
+  if(!fs.existsSync(colorSchemeFile))
+  {
+    createDefaultColorFile(function(){});
+  }
+
+  if(!fs.existsSync(settingsFileDirectory))
+  {
+    // Read file after creation
+    createSettingsFile(function(){readSettingsFile(() => {
+      // Ask user to accept terms and conditions
+      promptToS();
+    })});
+  } else {
+    // Load user settings
+    readSettingsFile(() => {
+      if(!settings.meta.hasAcceptedToS)
+      {
+        // Ask user to accept terms and conditions
+        promptToS();
+      }
+      // Set volume to saved value
+      let awaitVolumeSliderLoad = setInterval(() => {
+        if(document.getElementById('volumeSlider'))
+        {
+          clearInterval(awaitVolumeSliderLoad);
+          document.getElementById('volumeSlider').value = settings.settings.volume;
+          gainNode.gain.value = document.getElementById('volumeSlider').value / 100;
+          // Update volume label
+          document.getElementById('volumeLabel').innerHTML = `Volume ${document.getElementById('volumeSlider').value}%`;
+        }
+      }, 50);
+    });
   }
 
   libraryErrorCorrection();
@@ -188,6 +229,107 @@ function startup(){
     document.getElementById('pressEnterText').style.opacity = 0;
   });
 
+  // -----
+  // Menu button event handlers
+  // -----
+  let awaitMenuLoad = setInterval(() => {
+    if(document.getElementById('menuItem-reload') && document.getElementById('menu'))
+    {
+      clearInterval(awaitMenuLoad);
+
+      // Add event listener to open/close menu button
+      document.getElementById('openMenuButton').addEventListener('click', () => {
+        menuIsOpen = !menuIsOpen;
+        if(menuIsOpen)
+        {
+          document.getElementById('menuIcon').src = 'icons/cross.png'
+          document.getElementById('menu').style.display = 'block';
+          setTimeout(() => {document.getElementById('menu').style.left = '0px';}, 30);
+        } else {
+          document.getElementById('menuIcon').src = 'icons/menu.png'
+          document.getElementById('menu').style.left = '-300px';
+          setTimeout(() => {document.getElementById('menu').style.display = 'none';}, 300);
+        }
+      });
+
+      // Settings button
+      document.getElementById('menuItem-settings').addEventListener('click', () => {
+        // Show settings window
+        document.getElementById('settingsModalContainer').style.display = 'block';
+        setTimeout(() => {document.getElementById('settingsModalContainer').style.opacity = 1;}, 30);
+      });
+
+      // Apply settings button
+      document.getElementById('applySettingsButton').addEventListener('click', () => {
+        applySettings();
+      });
+
+      // Custom color scheme button
+      document.getElementById('customColorSchemeButton').addEventListener('click', () => {
+        shell.showItemInFolder(customColorSchemeFileDirectory);
+      });
+
+      // Reload button
+      document.getElementById('menuItem-reload').addEventListener('click', () => {
+        BrowserWindow.getFocusedWindow().webContents.reloadIgnoringCache();
+      });
+
+      // About button
+      document.getElementById('menuItem-about').addEventListener('click', () => {
+        // Show about window
+        document.getElementById('aboutModalContainer').style.display = 'block';
+        setTimeout(() => {document.getElementById('aboutModalContainer').style.opacity = 1;}, 30);
+      });
+
+      // Close about window button
+      document.getElementById('closeAboutPage').addEventListener('click', () => {
+        // Show about window
+        document.getElementById('aboutModalContainer').style.opacity = 0;
+        setTimeout(() => {document.getElementById('aboutModalContainer').style.display = 'none';}, 300);
+      });
+
+      // License and legal information button
+      document.getElementById('menuItem-legal').addEventListener('click', () => {
+        promptToS();
+      });
+
+      // License and legal window agree and reject buttons
+      document.getElementById('agreeToS').addEventListener('click', () => {
+        settings.meta.hasAcceptedToS = true;
+        writeSettingsFile(() => {
+          console.log('Accepted ToS.');
+          // Hide modal window
+          document.getElementById('legalModalContainer').style.opacity = 0;
+          setTimeout(function(){document.getElementById('legalModalContainer').style.display = "none";}, 300);
+          // Reload window
+          // TODO: Fix bug where playlists get duplicated when
+          // license and legal window is opened.
+          // Reload is a workaround
+          BrowserWindow.getFocusedWindow().webContents.reloadIgnoringCache();
+        });
+      });
+
+      document.getElementById('rejectToS').addEventListener('click', () => {
+        settings.meta.hasAcceptedToS = false;
+        writeSettingsFile(() => {
+          console.log('Rejected ToS.');
+          let res = dialog.showMessageBoxSync({
+            buttons: ['OK'],
+            message: 'You have not accepted the provided terms and conditions. You must accept them to continue using StreamFusion. The program will now exit. When you start StreamFusion, you will be asked to accept the terms and conditions.',
+            defaultId: 0,
+            title: 'Rejected terms of service'
+          });
+          app.quit();
+        });
+      });
+
+    }
+  }, 20);
+
+  // -----
+  // End of menu event handlers
+  // -----
+
   // Read data in library file
   readLibraryFile(function(){
     if(libraryFileData)
@@ -217,8 +359,13 @@ function startup(){
 
   // First wait for elements to load
   let awaitLoad = setInterval(function(){
-    if(document.getElementById('playerControlPlayPause') && document.getElementById('createNewPlaylist') && document.getElementById('yourLibrary') && document.getElementById('trackProgressSlider'))
+    if(document.getElementById('versionInfo') && document.getElementById('playerControlPlayPause') && document.getElementById('createNewPlaylist') && document.getElementById('yourLibrary') && document.getElementById('trackProgressSlider'))
     {
+      clearInterval(awaitLoad);
+
+      // Set version info on about page
+      document.getElementById('versionInfo').innerHTML = `StreamFusion, version ${app.getVersion()} (${env.name}) running on ${osMap[process.platform]}, Electron version ${process.versions.electron}`;
+
       // Event listener for new playlist button
       document.getElementById('createNewPlaylist').addEventListener('click', (event) => {
         showPlaylistCreateModal();
@@ -247,6 +394,14 @@ function startup(){
         // Start playing from new timestamp
         try{context.suspend();}catch(err){}
         playMusic(musicPlayQueue[0], Math.round((this.value / 100) * duration));
+      });
+
+      // Change volume value in settings file when volume is changed
+      document.getElementById('volumeSlider').addEventListener('change', function (evt) {
+        // Set volume settings property
+        settings.settings.volume = document.getElementById('volumeSlider').value;
+        // Write settings file
+        writeSettingsFile(() => {});
       });
 
       // Freeze progress bar while user is moving it
@@ -312,8 +467,8 @@ function startup(){
           document.getElementById('playerControlShuffle').style.border = "3px solid var(--bg-primary)"
         }
       });
-
-      clearInterval(awaitLoad);
+      // Load user settings
+      loadSettings();
     }
   }, 50);
   // -----
@@ -321,7 +476,175 @@ function startup(){
   // -----
 }
 
-function libraryErrorCorrection(){
+function readSettingsFile(callback)
+{
+  console.log(`Reading settings file from ${settingsFileDirectory}`);
+  // Read settings file
+  try
+  {
+    // Parse JSON from file contents
+    settings = JSON.parse(fs.readFileSync(settingsFileDirectory));
+    // Call callback
+    callback();
+  } catch(err) {
+    // Failed to read
+    console.error(`Failed to read settings file: ${err}`);
+    // Check if file exists, create if missing
+    if(!fs.existsSync(settingsFileDirectory))
+    {
+      // Read file after creation
+      createSettingsFile(function(){
+        // Reload
+        BrowserWindow.getFocusedWindow().webContents.reloadIgnoringCache();
+      });
+    }
+  }
+}
+
+function writeSettingsFile(callback)
+{
+  // Write JSON to settings file
+  fs.writeFile(settingsFileDirectory, JSON.stringify(settings), 'utf8', function (err) {
+    if (err) {
+        console.error('Unable to write settings file JSON!');
+        // Try again
+        writeSettingsFile(() => {callback();});
+    }
+    console.log('Settings file data written to disk.');
+    callback();
+  });
+}
+
+function promptToS()
+{
+  // Shows legal info and license modal
+  // Read stuff from file and add to html
+  fs.readFile(legalInfo, 'utf8' , (err, data) => {
+    if (err) {
+      console.error(err)
+      return;
+    }
+    document.getElementById('legalInfo').innerHTML = data;
+
+    // Show the modal window
+    document.getElementById('legalModalContainer').style.display = "block";
+    setTimeout(function(){document.getElementById('legalModalContainer').style.opacity = 1;}, 20);
+  });
+  // Accept and reject event handlers to exit the window are added in startup
+}
+
+function createCustomColorFile()
+{
+  // Create a color scheme file
+  let jsonTemplate = {
+    backgroundPrimary: '#1d1f21',
+    backgroundSecondary: '#292c2f',
+    backgroundTertiary: '#161719',
+    backgroundLight: '#b5b7b9',
+    textPrimary: '#818484',
+    textHighlight: '#b5b7b9',
+    textDark: '#161719',
+    textLink: '#3a81c7',
+    loadingBar: '#44b8ff'
+  }
+  fs.writeFile(customColorSchemeFileDirectory, JSON.stringify(jsonTemplate), 'utf8', function (err) {
+    if (err) {
+        console.error(err);
+    }
+
+    console.log(`Custom color scheme JSON file created at ${customColorSchemeFileDirectory}`);
+  });
+
+}
+
+function createDefaultColorFile()
+{
+  // Create a color scheme file
+  let jsonTemplate = {
+    default: {
+      backgroundPrimary: '#1d1f21',
+      backgroundSecondary: '#292c2f',
+      backgroundTertiary: '#161719',
+      backgroundLight: '#b5b7b9',
+      textPrimary: '#818484',
+      textHighlight: '#b5b7b9',
+      textDark: '#161719',
+      textLink: '#3a81c7',
+      loadingBar: '#44b8ff'
+    },
+    high_contrast: {
+      backgroundPrimary: '#1d1f21',
+      backgroundSecondary: '#292c2f',
+      backgroundTertiary: '#161719',
+      backgroundLight: '#dee2e5',
+      textPrimary: '#e1e1e1',
+      textHighlight: '#ffffff',
+      textDark: '#000000',
+      textLink: '#4ea7ff',
+      loadingBar: '#44b8ff'
+    }
+  }
+  fs.writeFile(colorSchemeFile, JSON.stringify(jsonTemplate), 'utf8', function (err) {
+    if (err) {
+        console.error(err);
+    }
+
+    console.log(`Default color scheme JSON file created at ${customColorSchemeFileDirectory}`);
+  });
+}
+
+function applySettings()
+{
+  // Called when apply button is clicked in settings menu.
+  // Takes inputs from the settings menu
+  // and writes them to the settings object.
+  // Hide the settings modal
+  document.getElementById('settingsModalContainer').style.opacity = 0;
+  setTimeout(function(){document.getElementById('settingsModalContainer').style.display = "none";}, 300);
+
+  settings.settings.colorScheme = document.getElementById('settingsColorScheme').value;
+  settings.settings.defaultSearch = document.getElementById('settingsSearchPlatformSelect').value;
+
+  console.log('All settings applied');
+  writeSettingsFile(() => {
+    loadSettings();
+  });
+}
+
+function loadSettings()
+{
+  // Loads user settings and then applies them
+
+  // Default search setting
+  document.getElementById('searchPlatformSelect').value = settings.settings.defaultSearch;
+  document.getElementById('settingsSearchPlatformSelect').value = settings.settings.defaultSearch;
+
+  // Color scheme
+  // Load selected color scheme to selectedColorScheme,
+  // then apply values from that to style
+  let selectedColorScheme = {};
+  if(settings.settings.colorScheme == 'custom')
+  {
+    selectedColorScheme = JSON.parse(fs.readFileSync(customColorSchemeFileDirectory));
+  } else {
+    selectedColorScheme = JSON.parse(fs.readFileSync(colorSchemeFile))[settings.settings.colorScheme];
+  }
+  document.documentElement.style.setProperty('--bg-primary', selectedColorScheme.backgroundPrimary);
+  document.documentElement.style.setProperty('--bg-secondary', selectedColorScheme.backgroundSecondary);
+  document.documentElement.style.setProperty('--bg-tertiary', selectedColorScheme.backgroundTertiary);
+  document.documentElement.style.setProperty('--bg-light', selectedColorScheme.backgroundLight);
+  document.documentElement.style.setProperty('--text-primary', selectedColorScheme.textPrimary);
+  document.documentElement.style.setProperty('--text-highlight', selectedColorScheme.textHighlight);
+  document.documentElement.style.setProperty('--text-dark', selectedColorScheme.textDark);
+  document.documentElement.style.setProperty('--text-link', selectedColorScheme.textLink);
+  document.documentElement.style.setProperty('--loadingBar', selectedColorScheme.loadingBar);
+
+  document.getElementById('settingsColorScheme').value = settings.settings.colorScheme;
+  console.log('User settings loaded.');
+}
+
+function libraryErrorCorrection()
+{
   // Tries to fix NN sources and 0:00 durations in library
   readLibraryFile(() => {
     // Stop modification of data while processing
@@ -559,15 +882,15 @@ function searchSoundCloud(searchQuery)
   console.log(`Searching SoundCloud for ${searchQuery} with API key ${soundCloudAPIKey}`);
 
   // Send https request for search
-  // Define options
-  let options = {
+  // Define settings
+  let settings = {
     hostname: 'api-v2.soundcloud.com',
     path: `/search?q=${encodeURI(searchQuery)}&client_id=${soundCloudAPIKey}&limit=20&app_locale=en`,
     method: 'GET'
   }
 
   // Handle request
-  https.get(options, (res) => {
+  https.get(settings, (res) => {
   let data = '';
 
   // A chunk of data has been received.
@@ -1078,7 +1401,7 @@ function writeLibraryFile(callback)
   // This is done to avoid something requesting a lib file read,
   // while data is still in progress of being modified and written to disk.
 
-  // Writes libraryFileData to libraryFileDirectory, as simple as that.
+  // Writes libraryFileData to libraryFileDirectory
   fs.writeFile(libraryFileDirectory, JSON.stringify(libraryFileData), 'utf8', function (err) {
     if (err) {
         console.error('Unable to write library file JSON!');
@@ -1119,7 +1442,15 @@ function readLibraryFile(callback)
     {
       isUsingLibraryFile = true;
       console.log(`Reading library file (${libraryFileDirectory})`);
-      libraryFileData = JSON.parse(fs.readFileSync(libraryFileDirectory));
+      // Sometimes on start-up fails to read file,
+      // in that case just try again.
+      try
+      {
+        libraryFileData = JSON.parse(fs.readFileSync(libraryFileDirectory));
+      } catch(err) {
+        isUsingLibraryFile = false;
+        readLibraryFile(() => {callback()});
+      }
       isUsingLibraryFile = false;
       clearInterval(retryInterval);
       callback();
@@ -1163,17 +1494,22 @@ function createHistoryFile(callback)
   callback();
 }
 
-function createOptionsFile(callback)
+function createSettingsFile(callback)
 {
   // Create a history file
   let jsonTemplate = {
-    options: {},
+    settings: {
+      colorScheme: 'default',
+      defaultSearch: 'YT',
+      volume: 50
+    },
     meta: {
       installDir: process.cwd(),
-      version: softwareVersion
+      version: softwareVersion,
+      hasAcceptedToS: false
     }
   }
-  fs.writeFile(optionsFileDirectory, JSON.stringify(jsonTemplate), 'utf8', function (err) {
+  fs.writeFile(settingsFileDirectory, JSON.stringify(jsonTemplate), 'utf8', function (err) {
     if (err) {
         console.error(err);
     }
@@ -1319,7 +1655,7 @@ function playMusic(id, _timestamp)
           bufferSource.connect(gainNode);
           gainNode.connect(context.destination);
           // Set gain node gain to volume slider value
-          gainNode.gain.value = document.getElementById('volumeSlider').value / 100
+          gainNode.gain.value = document.getElementById('volumeSlider').value / 100;
 
           // Start playing
           bufferSource.start(0, _timestamp);

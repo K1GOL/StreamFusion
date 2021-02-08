@@ -2,11 +2,11 @@
   "name": "streamfusion",
   "productName": "StreamFusion",
   "description": "All-in-one music streaming application",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "author": "K1GOL",
   "copyright": "© 2021, K1GOL",
-  "homepage": "http://example.com",
+  "homepage": "https://github.com/K1GOL/StreamFusion",
   "main": "app/background.js",
   "build": {
     "appId": "com.k1gol.streamfusion",

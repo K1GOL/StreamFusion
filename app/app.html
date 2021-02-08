@@ -7,6 +7,9 @@
 <body>
   <div id="app" class="container">
     <div class="topBar">
+      <span class="openMenuButton" id="openMenuButton">
+        <img class="menuIcon" id="menuIcon" src="icons/menu.png">
+      </span>
       <div class="searchBar">
         <input class="searchBarInput" id="searchInput" placeholder="Search for music" onfocus="this.placeholder = ''" onblur="this.placeholder = 'Search for music'"></input>
         <div class="platformSelectContainer">
@@ -88,6 +91,64 @@
       <h2>Rename playlist</h2>
       <p class="inlineBlock modalTextLabel">Name</p><input class="inlineBlock normalInput" id="renamePlaylistTitle"></input><br>
       <button class="normalButton" id="confirmRenamePlaylistButton">Confirm</button>
+    </div>
+  </div>
+  <div id="legalModalContainer" class="modalContainer">
+    <div class="modal">
+      <span id="legalInfo">
+      </span>
+      <br>
+      <button class="normalButton" id="agreeToS">I agree</button>
+      <button class="normalButton" id="rejectToS">I do not agree</button>
+    </div>
+  </div>
+  <div id="aboutModalContainer" class="modalContainer">
+    <div class="modal">
+      <img class="aboutPageIcon inlineBlock" src="icons/icon.png">
+      <h2 class="inlineBlock">About StreamFusion</h2>
+      <p id="versionInfo"></p>
+      <p>
+        For license and legal information, see "License and legal information" section in the menu.
+        <br><br>
+        StreamFusion GitHub repository: <a class="js-external-link" href="https://github.com/K1GOL/StreamFusion">https://github.com/K1GOL/StreamFusion</a>
+      </p>
+      <button class="normalButton" id="closeAboutPage">OK</button>
+    </div>
+  </div>
+  <div id="settingsModalContainer" class="modalContainer">
+    <div class="modal">
+      <h2>Settings</h2>
+      <p>Default search platform</p>
+      <select id="settingsSearchPlatformSelect">
+        <option value="YT">YouTube</option>
+        <option value="SC">SoundCloud</option>
+      </select>
+      <p>Color scheme</p>
+      <select id="settingsColorScheme">
+        <option value="default">Default</option>
+        <option value="high_contrast">High contrast</option>
+        <option value="custom">Custom</option>
+      </select>
+      <br><br>
+      <button class="normalButton" id="customColorSchemeButton">Edit custom color scheme</button>
+      <br><br>
+      <button class="normalButton" id="applySettingsButton">Apply</button>
+    </div>
+  </div>
+  <div class="menu" id="menu">
+    <div class="menuItemsContainer" id="menuItemsContainer">
+      <span class="menuItem" id="menuItem-settings">
+        <p>Settings</p>
+      </span>
+      <span class="menuItem" id="menuItem-reload">
+        <p>Reload StreamFusion</p>
+      </span>
+      <span class="menuItem" id="menuItem-about">
+        <p>About StreamFusion</p>
+      </span>
+      <span class="menuItem" id="menuItem-legal">
+        <p>License and legal information</p>
+      </span>
     </div>
   </div>
 </body>

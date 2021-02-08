@@ -9,6 +9,7 @@
   --text-primary: #818484;
   --text-highlight: #b5b7b9;
   --text-dark: #161719;
+  --text-link: #3a81c7;
 
   --loadingBar: #44b8ff;
 
@@ -213,7 +214,7 @@ body {
   display: none;
   position: fixed;
   opacity: 0;
-  z-index: 1;
+  z-index: 3;
   padding-top: 100px;
   left: 0;
   top: 0;
@@ -441,7 +442,6 @@ body {
 .playlistSpan:active {
   background-color: var(--bg-tertiary);
   transition-duration: 0.1s;
-  cursor: pointer;
 }
 
 .playlistSpanClickableArea {
@@ -457,8 +457,92 @@ body {
   background-color: var(--bg-light);
 }
 
+.menuIcon {
+  max-height: 30px;
+  top: 50%;
+  margin: auto;
+  transform: translate(3px, 3px);
+}
+
+.openMenuButton {
+  background-color: var(--bg-light);
+  position: absolute;
+  z-index: 2;
+  margin: 15px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  opacity: 0.75;
+  transition-duration: 0.2s;
+}
+
+.openMenuButton:hover {
+  opacity: 1;
+  transition-duration: 0.2s;
+  box-shadow: 3px 3px 3px var(--bg-primary);
+  cursor: pointer;
+}
+
+.menu {
+  position: fixed;
+  display: none;
+  left: -300px;
+  background-color: var(--bg-secondary);
+  width: 300px;
+  height: 100vh;
+  box-shadow: 2px 2px 5px black;
+  z-index: 1;
+  transition-duration: 0.3s;
+}
+
+.menuItemsContainer {
+  width: 100%;
+  margin-top: 55px;
+  height: calc(100% - 55px);
+}
+
+.menuItem {
+  display: inline-block;
+  background-color: var(--bg-secondary);
+  width: 100%;
+  height: 39px;
+  border: solid var(--bg-tertiary);
+  border-width: 0 0 2px 0;
+  transition-duration: 0.3s;
+}
+
+.menuItem:hover {
+  background-color: var(--bg-primary);
+  transition-duration: 0.3s;
+  cursor: pointer;
+}
+
+.menuItem:active {
+  background-color: var(--bg-tertiary);
+  transition-duration: 0.1s;
+}
+
+.aboutPageIcon {
+  width: 40px;
+  height: 40px;
+  padding: 10px;
+}
+
 #currentTimeLabel {
   width: 40px;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-light);
+  border-radius: 6px;
 }
 
 h2 {
@@ -506,6 +590,10 @@ select {
 option {
   outline: none;
   border: none;
+}
+
+a {
+  color: var(--text-link);
 }
 
 @keyframes loadingBarAnimation {
