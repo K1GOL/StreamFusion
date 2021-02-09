@@ -80,7 +80,9 @@ Run `npm install` to install all required dependencies. After that, you should b
 
 All neccessary tools for testing are included (Mocha), but not yet implemented. TODO.
 
-To build StreamFusion, use `npm run release`. This will build the program in the production environment, as well as create an installer for you in the `dist` directory.
+To build StreamFusion in the development environment, use `npm start`.
+
+To build StreamFusion in the production environment, use `npm run release`. This will create an installer for you in the `dist` directory.
 
 Note: It is recommended to use `"asar": false` in the build options, as enabling archiving will break @ffplay-installer.
 
