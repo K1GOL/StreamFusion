@@ -16,14 +16,6 @@ import env from "env";
 
 app.on("ready", () => {
 
-  // Check for updates as the first thing on start,
-  // but only if in production
-  if(env.name == 'production')
-  {
-    console.log('Checking for updates...');
-    autoUpdater.checkForUpdatesAndNotify();
-  }
-
   const mainWindow = createWindow("main", {
     width: 1000,
     height: 600,
@@ -32,6 +24,13 @@ app.on("ready", () => {
       nodeIntegration: true
     }
   });
+
+  // Check for updates, but only if in production
+  if(env.name == 'production')
+  {
+    console.log('Checking for updates...');
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 
   mainWindow.loadURL(
     url.format({
@@ -68,13 +67,18 @@ autoUpdater.on('update-available', () => {
 
 // Event for when update is ready to install
 autoUpdater.on('update-downloaded', () => {
-  console.log('Update has been downloaded. Installing now...');
-  dialog.showMessageBoxSync({
-    buttons: ['OK'],
+  console.log('Update has been downloaded. Do you want to install it now?');
+  // Ask user if they want to install now
+  let res = dialog.showMessageBoxSync({
+    buttons: ['Yes', 'No'],
     message: 'An update is available. StreamFusion will now automatically restart and install it.',
+    detail: 'A list of all the changes made can be found here: http://bit.ly/StreamFusionUpdate',
     defaultId: 0,
     title: 'Update'
   });
-  // Restart and update
-  autoUpdater.quitAndInstall();
+  if(res == 0)
+  {
+    // Restart and update
+    autoUpdater.quitAndInstall();
+  }
 });

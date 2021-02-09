@@ -482,6 +482,31 @@ function startup(){
       });
     }
   }, 50);
+
+  // Set event listeners for various cancel buttons
+  // Done automatically by looking at the data-associatedModal attribute
+  let awaitButtonsLoad = setInterval(() => {
+    if(document.getElementsByClassName('cancelButton').length > 1)
+    {
+      clearInterval(awaitButtonsLoad);
+      Array.from(document.getElementsByClassName('cancelButton')).forEach(item => {
+        // Exception for playlistManagerModalContainer,
+        // requires library file to be freed too
+        if(item.getAttribute('data-associatedModal') == "playlistManagerModalContainer")
+        {
+          item.addEventListener('click', () => {
+            isUsingLibraryFile = false;
+          });
+        }
+        // Generic add event listener
+        item.addEventListener('click', () => {
+          document.getElementById(item.getAttribute('data-associatedModal')).style.opacity = 0;
+          setTimeout(function(){document.getElementById(item.getAttribute('data-associatedModal')).style.display = "none";}, 300);
+        });
+      });
+    }
+  }, 50);
+
   // -----
   // End of start-up procedures
   // -----
@@ -1448,7 +1473,15 @@ function readLibraryFile(callback)
 
       fs.readFile(libraryFileDirectory, (err, data) => {
           if (err) throw err;
-          libraryFileData = JSON.parse(data);
+          // Try to parse, if fails, read again
+          try {
+            libraryFileData = JSON.parse(data);
+          } catch(err2) {
+            isUsingLibraryFile = false;
+            setTimeout(() => {
+              readLibraryFile(function(){callback()});
+            }, 100);
+          }
           isUsingLibraryFile = false;
           callback();
       });

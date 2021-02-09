@@ -2,6 +2,15 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.1.1
+
+### Fixes and changes:
+* You can now postpone an update
+* Fix for a library file read error
+
+### New features:
+* Cancel buttons in various modals
+
 # 1.1.0
 
 ### Fixes and changes:
