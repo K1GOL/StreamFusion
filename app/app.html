@@ -79,8 +79,8 @@
   <div id="detailsModalContainer" class="modalContainer">
     <div class="modal">
       <h2>Are these details correct?</h2>
-      <p class="inlineBlock modalTextLabel">Title</p><input class="inlineBlock normalInput" id="detailsTitle"></input><br>
-      <p class="inlineBlock modalTextLabel">Artist</p><input class="inlineBlock normalInput" id="detailsArtist"></input><br>
+      <p class="inlineBlock modalTextLabel">Title</p><input class="inlineBlock normalInput listenForEnterInput" id="detailsTitle" data-associatedButton="confirmDetailsButton"></input><br>
+      <p class="inlineBlock modalTextLabel">Artist</p><input class="inlineBlock normalInput listenForEnterInput" id="detailsArtist" data-associatedButton="confirmDetailsButton"></input><br>
       <button class="normalButton" id="confirmDetailsButton">Confirm</button>
       <button class="normalButton cancelButton" data-associatedModal="detailsModalContainer">Cancel</button>
     </div>
@@ -99,7 +99,7 @@
   <div id="newPlaylistModalContainer" class="modalContainer">
     <div class="modal">
       <h2>Create new playlist</h2>
-      <p class="inlineBlock modalTextLabel">Name</p><input class="inlineBlock normalInput" id="playlistTitle"></input><br>
+      <p class="inlineBlock modalTextLabel">Name</p><input class="inlineBlock normalInput listenForEnterInput" id="playlistTitle" data-associatedButton="confirmNewPlaylistButton"></input><br>
       <button class="normalButton" id="confirmNewPlaylistButton">Confirm</button>
       <button class="normalButton cancelButton" data-associatedModal="newPlaylistModalContainer">Cancel</button>
     </div>
@@ -107,7 +107,7 @@
   <div id="renamePlaylistModalContainer" class="modalContainer">
     <div class="modal">
       <h2>Rename playlist</h2>
-      <p class="inlineBlock modalTextLabel">Name</p><input class="inlineBlock normalInput" id="renamePlaylistTitle"></input><br>
+      <p class="inlineBlock modalTextLabel">Name</p><input class="inlineBlock normalInput listenForEnterInput" id="renamePlaylistTitle" data-associatedButton="confirmRenamePlaylistButton"></input><br>
       <button class="normalButton" id="confirmRenamePlaylistButton">Confirm</button>
       <button class="normalButton cancelButton" data-associatedModal="renamePlaylistModalContainer">Cancel</button>
     </div>
@@ -130,8 +130,11 @@
         For license and legal information, see "License and legal information" section in the menu.
         <br><br>
         StreamFusion GitHub repository: <a class="js-external-link" href="https://github.com/K1GOL/StreamFusion">https://github.com/K1GOL/StreamFusion</a>
+        <hr>
+        <span id="changeLogContainer">
+        </span>
       </p>
-      <button class="normalButton" id="closeAboutPage">OK</button>
+      <button class="normalButton cancelButton" data-associatedModal="aboutModalContainer">OK</button>
     </div>
   </div>
   <div id="settingsModalContainer" class="modalContainer">

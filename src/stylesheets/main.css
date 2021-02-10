@@ -668,6 +668,10 @@ a {
   color: var(--text-link);
 }
 
+hr {
+  border: 2px solid var(--text-primary);
+}
+
 @keyframes loadingBarAnimation {
   0%    {width: 0px;}
   25%   {width: 25%;}

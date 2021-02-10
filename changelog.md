@@ -2,6 +2,17 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.1.2
+
+### Fixes and changes:
+
+* Resized icon, included new sizes
+
+### New features:
+
+* Change log entry for the latest update is now shown in the "About" window
+* Pressing the enter key in a text input will now do the same as clicking the confirm button
+
 ## 1.1.1
 
 ### Fixes and changes:

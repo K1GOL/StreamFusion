@@ -1,5 +1,5 @@
 # StreamFusion
-<img src="https://github.com/K1GOL/StreamFusion/blob/main/resources/icons/512x512.png" width="100" height="100">
+<img src="https://github.com/K1GOL/StreamFusion/blob/main/resources/icons/128x128.png" width="100" height="100">
 
 StreamFusion is a 100% free open-source music player and manager incorporating SoundCloud and YouTube music streaming in one single program. Get started with using StreamFusion right now by downloading the installer linked below.
 
@@ -27,9 +27,9 @@ See [changelog.md](https://github.com/K1GOL/StreamFusion/blob/main/changelog.md)
   * Third-party APIs are available to allow search functionality, but it is uncertain if music playback can be supported.
 
 * Spotify
-  
+
   * Has proper API support for all required activities, however due to restrictions set by Spotify, all users will be required to log in with a Spotify account that has a valid Spotify Premium subscription.
-  
+
 * Apple Music
 
   * Has API support, but with Apple being Apple, enrolling in the Apple Developer Program is required to use it, which is not happening any time soon.
@@ -39,7 +39,7 @@ See [changelog.md](https://github.com/K1GOL/StreamFusion/blob/main/changelog.md)
 * Amazon Music
 
   * No public API
-  
+
 ## Download StreamFusion
 
 StreamFusion is currently available only for Windows. Linux support might be coming at some point. Mac support will not be coming any time soon, as Apple makes running unsigned code hard, and signing your code without a computer running macOS impossible.

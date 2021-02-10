@@ -22,6 +22,7 @@ const colorSchemeFile = dataDirectory + '\\default_color_schemes.json';
 
 const listItemTemplate = (env.name == 'production' ? 'resources/templates/listItemTemplate.html' : 'templates/listItemTemplate.html');
 const playlistItemTemplate = (env.name == 'production' ? 'resources/templates/playlistItemTemplate.html' : 'templates/playlistItemTemplate.html');
+const changeLogTemplate = (env.name == 'production' ? 'resources/templates/changeLogTemplate.html' : 'templates/changeLogTemplate.html');
 const legalInfo = (env.name == 'production' ? 'resources/templates/legalInfoWindowTemplate.html' : 'templates/legalInfoWindowTemplate.html');
 
 let soundCloud;
@@ -167,6 +168,23 @@ function startup(){
           document.getElementById('volumeLabel').innerHTML = `Volume ${document.getElementById('volumeSlider').value}%`;
         }
       }, 50);
+
+      // Check that there is lastStarted info
+      if(settings.meta.lastStarted == undefined)
+      {
+        settings.meta.lastStarted = {};
+      }
+
+      // Check info about last started state
+      if(settings.meta.lastStarted.version != softwareVersion)
+      {
+        // First time starting in this version,
+        // show change log on about page
+        showAboutPage();
+        // Update version info
+        settings.meta.lastStarted.version = softwareVersion;
+        writeSettingsFile(() => {});
+      }
     });
   }
 
@@ -293,16 +311,7 @@ function startup(){
 
       // About button
       document.getElementById('menuItem-about').addEventListener('click', () => {
-        // Show about window
-        document.getElementById('aboutModalContainer').style.display = 'block';
-        setTimeout(() => {document.getElementById('aboutModalContainer').style.opacity = 1;}, 30);
-      });
-
-      // Close about window button
-      document.getElementById('closeAboutPage').addEventListener('click', () => {
-        // Show about window
-        document.getElementById('aboutModalContainer').style.opacity = 0;
-        setTimeout(() => {document.getElementById('aboutModalContainer').style.display = 'none';}, 300);
+        showAboutPage();
       });
 
       // License and legal information button
@@ -486,7 +495,7 @@ function startup(){
   // Set event listeners for various cancel buttons
   // Done automatically by looking at the data-associatedModal attribute
   let awaitButtonsLoad = setInterval(() => {
-    if(document.getElementsByClassName('cancelButton').length > 1)
+    if(document.getElementsByClassName('cancelButton').length > 0)
     {
       clearInterval(awaitButtonsLoad);
       Array.from(document.getElementsByClassName('cancelButton')).forEach(item => {
@@ -502,6 +511,24 @@ function startup(){
         item.addEventListener('click', () => {
           document.getElementById(item.getAttribute('data-associatedModal')).style.opacity = 0;
           setTimeout(function(){document.getElementById(item.getAttribute('data-associatedModal')).style.display = "none";}, 300);
+        });
+      });
+    }
+  }, 50);
+
+  // Set event listeners for enter key press in text inputs
+  // Done automatically by looking at the data-associatedButton attribute
+  let awaitInputLoad = setInterval(() => {
+    if(document.getElementsByClassName('listenForEnterInput').length > 0)
+    {
+      clearInterval(awaitInputLoad);
+      Array.from(document.getElementsByClassName('listenForEnterInput')).forEach(item => {
+        // Generic add event listener
+        item.addEventListener('keydown', event => {
+          // Key code for enter is 13
+          if (event.keyCode == 13) {
+            document.getElementById(item.getAttribute('data-associatedButton')).click();
+          }
         });
       });
     }
@@ -629,6 +656,22 @@ function createDefaultColorFile()
     }
 
     console.log(`Default color scheme JSON file created at ${customColorSchemeFileDirectory}`);
+  });
+}
+
+function showAboutPage()
+{
+  // Shows change log in about window
+  fs.readFile(changeLogTemplate, 'utf8' , (err, data) => {
+    if (err) {
+      console.error(err)
+      return;
+    }
+    document.getElementById('changeLogContainer').innerHTML = data;
+
+    // Show the modal window
+    document.getElementById('aboutModalContainer').style.display = "block";
+    setTimeout(function(){document.getElementById('aboutModalContainer').style.opacity = 1;}, 20);
   });
 }
 
@@ -1535,7 +1578,7 @@ function createSettingsFile(callback)
     },
     meta: {
       installDir: process.cwd(),
-      version: softwareVersion,
+      installVersion: softwareVersion,
       hasAcceptedToS: false
     }
   }
