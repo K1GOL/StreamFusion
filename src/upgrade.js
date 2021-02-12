@@ -14,7 +14,6 @@ module.exports = {
       // customColorFile
 
       // Handle color files format change in 1.1.2 => 1.1.3
-      console.log(`${fromVersion}, '1.1.3'`);
       if(!util.semVerGreaterThan(fromVersion, '1.1.3'))
       {
         let colorData = JSON.parse(fs.readFileSync(files.customColorFile))
@@ -37,50 +36,6 @@ module.exports = {
           if (err) {
               console.error(err);
           }
-          console.log(`Custom color scheme JSON file created at ${files.customColorFile}`);
-        });
-
-        // Reset default scheme file
-        fs.unlinkSync(files.defaultColorFile);
-
-        let jsonTemplate_d = {
-          default_defaultColorScheme: {
-            name: 'Default',
-            id: 'default_defaultColorScheme',
-            colors: {
-              backgroundPrimary: '#1d1f21',
-              backgroundSecondary: '#292c2f',
-              backgroundTertiary: '#161719',
-              backgroundLight: '#b5b7b9',
-              textPrimary: '#818484',
-              textHighlight: '#b5b7b9',
-              textDark: '#161719',
-              textLink: '#3a81c7',
-              loadingBar: '#44b8ff'
-            }
-          },
-          default_highContrastColorScheme: {
-            name: 'High contrast',
-            id: 'default_highContrastColorScheme',
-            colors: {
-              backgroundPrimary: '#1d1f21',
-              backgroundSecondary: '#292c2f',
-              backgroundTertiary: '#161719',
-              backgroundLight: '#dee2e5',
-              textPrimary: '#e1e1e1',
-              textHighlight: '#ffffff',
-              textDark: '#000000',
-              textLink: '#4ea7ff',
-              loadingBar: '#44b8ff'
-            }
-          }
-        }
-        fs.writeFile(files.defaultColorFile, JSON.stringify(jsonTemplate_d), 'utf8', function (err) {
-          if (err) {
-              console.error(err);
-          }
-
-          console.log(`Default color scheme JSON file created at ${files.defaultColorFile}`);
         });
       }
    }

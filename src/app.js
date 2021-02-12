@@ -6,6 +6,7 @@ const win = require('electron').remote.getCurrentWindow();
 const scraper = require("soundcloud-scraper");
 const https = require('https');
 const upgrade = require('./upgrade.js');
+const util = require('./util.js');
 
 const { dialog, app, BrowserWindow } = require('electron').remote;
 const { shell } = require('electron');
@@ -129,7 +130,7 @@ function startup(){
 
   if(!fs.existsSync(historyFileDirectory))
   {
-    createHistoryFile(function(){});
+    util.createHistoryFile(historyFileDirectory, function(){});
   }
 
   if(!fs.existsSync(customColorSchemeFileDirectory))
@@ -140,7 +141,7 @@ function startup(){
   if(!fs.existsSync(settingsFileDirectory))
   {
     // Read file after creation
-    createSettingsFile(function(){readSettingsFile(() => {
+    util.createSettingsFile(settingsFileDirectory, function(){readSettingsFile(() => {
       // Ask user to accept terms and conditions
       promptToS();
     })});
@@ -169,23 +170,24 @@ function startup(){
       {
         settings.meta.lastStarted = {};
       }
-      console.log(settings.meta.lastStarted);
 
       // Check info about last started state
       if(settings.meta.lastStarted.version != softwareVersion)
       {
+        let lastVer = (settings.meta.lastStarted.version ? settings.meta.lastStarted.version : '0.0.0');
+
+        // Notify server about the update
+        util.notifyUpdateDeployment(lastVer, softwareVersion);
+
         // First time starting in this version,
         // show change log on about page
         showAboutPage();
         // Update version info
-        let lastVer = (settings.meta.lastStarted.version ? settings.meta.lastStarted.version : '0.0.0');
         settings.meta.lastStarted.version = softwareVersion;
         writeSettingsFile(() => {
           // Call upgrade function
-          console.log(`upgrade ${lastVer}, ${softwareVersion}`);
           upgrade.upgrade(lastVer, softwareVersion, {
-            customColorFile: customColorSchemeFileDirectory,
-            defaultColorFile: colorSchemeFile
+            customColorFile: customColorSchemeFileDirectory
           });
           // Wait for upgrade to finish
           setTimeout(() => {loadSettings();}, 1000);
@@ -385,7 +387,7 @@ function startup(){
     // Also set the time label if possible
     if(contextTimeReference && !freezeProgressBar)
     {
-      convertToTimestamp(context.currentTime - contextTimeReference + timestamp, function(time){
+      util.convertToTimestamp(context.currentTime - contextTimeReference + timestamp, function(time){
         document.getElementById('currentTimeLabel').innerHTML = time;
       });
     }
@@ -567,7 +569,7 @@ function readSettingsFile(callback)
     if(!fs.existsSync(settingsFileDirectory))
     {
       // Read file after creation
-      createSettingsFile(function(){
+      util.createSettingsFile(settingsFileDirectory, function(){
         // Reload
         BrowserWindow.getFocusedWindow().webContents.reloadIgnoringCache();
       });
@@ -685,7 +687,6 @@ function loadSettings()
   {
     settings.settings.colorScheme = 'default_defaultColorScheme';
   }
-  console.log(`Selected color scheme is ${settings.settings.colorScheme}`);
 
   // Set UI first
   // Remove all values from the select
@@ -699,19 +700,20 @@ function loadSettings()
       Object.entries(JSON.parse(data)).forEach(([key, value]) => {
         document.getElementById('settingsColorScheme').innerHTML += `<option value="${value['id']}">${value['name']}</option>`
       });
-  });
+      
+      fs.readFile(customColorSchemeFileDirectory, (err, data) => {
+          if (err) throw err;
 
-  fs.readFile(customColorSchemeFileDirectory, (err, data) => {
-      if (err) throw err;
-
-      Object.entries(JSON.parse(data)).forEach(([key, value]) => {
-        document.getElementById('settingsColorScheme').innerHTML += `<option value="${value['id']}">${value['name']}</option>`
+          Object.entries(JSON.parse(data)).forEach(([key, value]) => {
+            document.getElementById('settingsColorScheme').innerHTML += `<option value="${value['id']}">${value['name']}</option>`
+          });
+          // Set a timeout before updating select box in options.
+          // Without causes value to not be set correctly sometimes
+          setTimeout(() => {document.getElementById('settingsColorScheme').value = settings.settings.colorScheme;}, 300);
       });
-      // Set a timeout before updating select box in options.
-      // Without causes value to not be set correctly sometimes
-      setTimeout(() => {document.getElementById('settingsColorScheme').value = settings.settings.colorScheme;}, 300);
-
   });
+
+
 
   // Load selected color scheme to selectedColorScheme,
   // then apply values from that to style
@@ -774,7 +776,7 @@ function libraryErrorCorrection()
         if(fs.existsSync(`${localMusicDirectory}\\${value['id']}.mp3`))
         {
           getAudioDurationInSeconds(`${localMusicDirectory}\\${value['id']}.mp3`).then((time) => {
-            convertToTimestamp(time, (convertedTimestamp) => {
+            util.convertToTimestamp(time, (convertedTimestamp) => {
               value['duration'] = convertedTimestamp;
             });
           });
@@ -792,7 +794,6 @@ function search(searchQuery)
   {
     return;
   }
-  console.log(`Searching for ${searchQuery}`);
   // Master search function.
   // Calls other appropriate search functions
   // depending on selected platforms
@@ -1010,7 +1011,7 @@ function searchSoundCloud(searchQuery)
       {
         return;
       }
-      convertToTimestamp(item.duration / 1000, convertedTime => {
+      util.convertToTimestamp(item.duration / 1000, convertedTime => {
         formattedResults.push({
           title: item.title,
           author: item.user.username,
@@ -1571,47 +1572,6 @@ function createLibraryFile(callback)
   callback();
 }
 
-function createHistoryFile(callback)
-{
-  // Create a history file
-  let jsonTemplate = {}
-  let d = new Date();
-  jsonTemplate[`${d.getFullYear()}.${d.getMonth()}`] = {}
-  fs.writeFile(historyFileDirectory, JSON.stringify(jsonTemplate), 'utf8', function (err) {
-    if (err) {
-        console.error(err);
-    }
-
-    console.log(`History JSON file created at ${historyFileDirectory}`);
-  });
-  callback();
-}
-
-function createSettingsFile(callback)
-{
-  // Create a history file
-  let jsonTemplate = {
-    settings: {
-      colorScheme: 'default_defaultColorScheme',
-      defaultSearch: 'YT',
-      volume: 50
-    },
-    meta: {
-      installDir: process.cwd(),
-      installVersion: softwareVersion,
-      hasAcceptedToS: false
-    }
-  }
-  fs.writeFile(settingsFileDirectory, JSON.stringify(jsonTemplate), 'utf8', function (err) {
-    if (err) {
-        console.error(err);
-    }
-
-    console.log(`Settings JSON file created at ${historyFileDirectory}`);
-  });
-  callback();
-}
-
 function playMusic(id, _timestamp)
 {
   // This funcion plays music
@@ -1897,7 +1857,6 @@ function addToPlayHistory(id)
   if(!lastPlayedMusic.includes(id))
   {
     lastPlayedMusic.unshift(id);
-    console.log(lastPlayedMusic);
   }
 
   // Record to history file
@@ -2260,7 +2219,6 @@ function minimize()
 
 function maximize()
 {
-  console.log(BrowserWindow.getFocusedWindow().isMaximized());
   if(BrowserWindow.getFocusedWindow().isMaximized())
   {
     BrowserWindow.getFocusedWindow().unmaximize();
@@ -2269,21 +2227,6 @@ function maximize()
     BrowserWindow.getFocusedWindow().maximize();
     document.getElementById('windowControlIcon-maximize').src = 'icons/unmaximize.png';
   }
-}
-
-function convertToTimestamp(input, callback)
-{
-  // Converts input in seconds to minutes and seconds
-  // s -> mm:ss
-  let minutes = Math.floor(input / 60);
-  let seconds = Math.round(input - minutes * 60);
-
-  // Prefix 0 to make always 2 digit seconds
-  if(seconds < 10)
-  {
-    seconds = `0${seconds}`;
-  }
-  callback(`${minutes}:${seconds}`);
 }
 
 // Call startup procedures function
