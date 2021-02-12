@@ -2,6 +2,34 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.1.3
+
+### Fixes and changes:
+
+* Updated dependencies
+
+* Fixed the "Update available" dialog message to make sense
+
+* Change log now shows version number and has a link to full change log on Github repo
+
+* Color scheme changes:
+
+  * Changed color scheme file structure
+
+  * Moved default schemes file
+
+  * Custom scheme file now allows for multiple custom schemes
+
+  * Slightly changed colors of the high contrast color scheme
+
+### New features:
+
+* New color schemes:
+
+  * Light
+
+  * Midnight Blue
+
 ## 1.1.2
 
 ### Fixes and changes:

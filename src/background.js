@@ -21,7 +21,8 @@ app.on("ready", () => {
     height: 600,
     frame: false,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      enableRemoteModule: true
     }
   });
 
@@ -71,7 +72,7 @@ autoUpdater.on('update-downloaded', () => {
   // Ask user if they want to install now
   let res = dialog.showMessageBoxSync({
     buttons: ['Yes', 'No'],
-    message: 'An update is available. StreamFusion will now automatically restart and install it.',
+    message: 'An update is available. Would you like to install it now?',
     detail: 'A list of all the changes made can be found here: http://bit.ly/StreamFusionUpdate',
     defaultId: 0,
     title: 'Update'

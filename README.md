@@ -6,8 +6,9 @@ StreamFusion is a 100% free open-source music player and manager incorporating S
 ## About StreamFusion
 
 StreamFusion incorporates multiple music streaming services in one, and has many useful features, such as:
-* Music downloading & offline playback
-* No buffering in the middle of playback
+* Download music and play it offline
+* Zero buffering in the middle of playback
+* No ads
 
 ## Change log
 

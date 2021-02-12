@@ -5,6 +5,7 @@ const { getAudioDurationInSeconds } = require('get-audio-duration');
 const win = require('electron').remote.getCurrentWindow();
 const scraper = require("soundcloud-scraper");
 const https = require('https');
+const upgrade = require('./upgrade.js');
 
 const { dialog, app, BrowserWindow } = require('electron').remote;
 const { shell } = require('electron');
@@ -18,8 +19,8 @@ const libraryFileDirectory = dataDirectory + '\\library.json';
 const historyFileDirectory = dataDirectory + '\\history.json';
 const settingsFileDirectory = dataDirectory + '\\settings.json';
 const customColorSchemeFileDirectory = dataDirectory + '\\custom_color_scheme.json';
-const colorSchemeFile = dataDirectory + '\\default_color_schemes.json';
 
+const colorSchemeFile = (env.name == 'production' ? 'resources/default_color_schemes.json' : 'default_color_schemes.json');
 const listItemTemplate = (env.name == 'production' ? 'resources/templates/listItemTemplate.html' : 'templates/listItemTemplate.html');
 const playlistItemTemplate = (env.name == 'production' ? 'resources/templates/playlistItemTemplate.html' : 'templates/playlistItemTemplate.html');
 const changeLogTemplate = (env.name == 'production' ? 'resources/templates/changeLogTemplate.html' : 'templates/changeLogTemplate.html');
@@ -84,7 +85,7 @@ let progressUpdater;
 // -----
 
 import "./stylesheets/main.css";
-import "./helpers/context_menu.js";
+//import "./helpers/context_menu.js";
 import "./helpers/external_links.js";
 import env from "env";
 
@@ -136,11 +137,6 @@ function startup(){
     createCustomColorFile(function(){});
   }
 
-  if(!fs.existsSync(colorSchemeFile))
-  {
-    createDefaultColorFile(function(){});
-  }
-
   if(!fs.existsSync(settingsFileDirectory))
   {
     // Read file after creation
@@ -151,7 +147,6 @@ function startup(){
   } else {
     // Load user settings
     readSettingsFile(() => {
-      loadSettings();
       if(!settings.meta.hasAcceptedToS)
       {
         // Ask user to accept terms and conditions
@@ -174,6 +169,7 @@ function startup(){
       {
         settings.meta.lastStarted = {};
       }
+      console.log(settings.meta.lastStarted);
 
       // Check info about last started state
       if(settings.meta.lastStarted.version != softwareVersion)
@@ -182,8 +178,20 @@ function startup(){
         // show change log on about page
         showAboutPage();
         // Update version info
+        let lastVer = (settings.meta.lastStarted.version ? settings.meta.lastStarted.version : '0.0.0');
         settings.meta.lastStarted.version = softwareVersion;
-        writeSettingsFile(() => {});
+        writeSettingsFile(() => {
+          // Call upgrade function
+          console.log(`upgrade ${lastVer}, ${softwareVersion}`);
+          upgrade.upgrade(lastVer, softwareVersion, {
+            customColorFile: customColorSchemeFileDirectory,
+            defaultColorFile: colorSchemeFile
+          });
+          // Wait for upgrade to finish
+          setTimeout(() => {loadSettings();}, 1000);
+        });
+      } else {
+        loadSettings();
       }
     });
   }
@@ -603,15 +611,21 @@ function createCustomColorFile()
 {
   // Create a color scheme file
   let jsonTemplate = {
-    backgroundPrimary: '#1d1f21',
-    backgroundSecondary: '#292c2f',
-    backgroundTertiary: '#161719',
-    backgroundLight: '#b5b7b9',
-    textPrimary: '#818484',
-    textHighlight: '#b5b7b9',
-    textDark: '#161719',
-    textLink: '#3a81c7',
-    loadingBar: '#44b8ff'
+    customColorScheme: {
+      name: 'Custom color scheme',
+      id: 'customColorScheme',
+      colors: {
+        backgroundPrimary: '#1d1f21',
+        backgroundSecondary: '#292c2f',
+        backgroundTertiary: '#161719',
+        backgroundLight: '#b5b7b9',
+        textPrimary: '#818484',
+        textHighlight: '#b5b7b9',
+        textDark: '#161719',
+        textLink: '#3a81c7',
+        loadingBar: '#44b8ff'
+      }
+    }
   }
   fs.writeFile(customColorSchemeFileDirectory, JSON.stringify(jsonTemplate), 'utf8', function (err) {
     if (err) {
@@ -621,42 +635,6 @@ function createCustomColorFile()
     console.log(`Custom color scheme JSON file created at ${customColorSchemeFileDirectory}`);
   });
 
-}
-
-function createDefaultColorFile()
-{
-  // Create a color scheme file
-  let jsonTemplate = {
-    default: {
-      backgroundPrimary: '#1d1f21',
-      backgroundSecondary: '#292c2f',
-      backgroundTertiary: '#161719',
-      backgroundLight: '#b5b7b9',
-      textPrimary: '#818484',
-      textHighlight: '#b5b7b9',
-      textDark: '#161719',
-      textLink: '#3a81c7',
-      loadingBar: '#44b8ff'
-    },
-    high_contrast: {
-      backgroundPrimary: '#1d1f21',
-      backgroundSecondary: '#292c2f',
-      backgroundTertiary: '#161719',
-      backgroundLight: '#dee2e5',
-      textPrimary: '#e1e1e1',
-      textHighlight: '#ffffff',
-      textDark: '#000000',
-      textLink: '#4ea7ff',
-      loadingBar: '#44b8ff'
-    }
-  }
-  fs.writeFile(colorSchemeFile, JSON.stringify(jsonTemplate), 'utf8', function (err) {
-    if (err) {
-        console.error(err);
-    }
-
-    console.log(`Default color scheme JSON file created at ${customColorSchemeFileDirectory}`);
-  });
 }
 
 function showAboutPage()
@@ -702,27 +680,69 @@ function loadSettings()
   document.getElementById('settingsSearchPlatformSelect').value = settings.settings.defaultSearch;
 
   // Color scheme
+  // Fix undefined color scheme
+  if(settings.settings.colorScheme == undefined || settings.settings.colorScheme == '')
+  {
+    settings.settings.colorScheme = 'default_defaultColorScheme';
+  }
+  console.log(`Selected color scheme is ${settings.settings.colorScheme}`);
+
+  // Set UI first
+  // Remove all values from the select
+  document.getElementById('settingsColorScheme').value = '';
+  document.getElementById('settingsColorScheme').innerHTML = '';
+
+  // For each color scheme, add an option in the select
+  fs.readFile(colorSchemeFile, (err, data) => {
+      if (err) throw err;
+
+      Object.entries(JSON.parse(data)).forEach(([key, value]) => {
+        document.getElementById('settingsColorScheme').innerHTML += `<option value="${value['id']}">${value['name']}</option>`
+      });
+  });
+
+  fs.readFile(customColorSchemeFileDirectory, (err, data) => {
+      if (err) throw err;
+
+      Object.entries(JSON.parse(data)).forEach(([key, value]) => {
+        document.getElementById('settingsColorScheme').innerHTML += `<option value="${value['id']}">${value['name']}</option>`
+      });
+      // Set a timeout before updating select box in options.
+      // Without causes value to not be set correctly sometimes
+      setTimeout(() => {document.getElementById('settingsColorScheme').value = settings.settings.colorScheme;}, 300);
+
+  });
+
   // Load selected color scheme to selectedColorScheme,
   // then apply values from that to style
   let selectedColorScheme = {};
-  if(settings.settings.colorScheme == 'custom')
-  {
-    selectedColorScheme = JSON.parse(fs.readFileSync(customColorSchemeFileDirectory));
-  } else {
-    selectedColorScheme = JSON.parse(fs.readFileSync(colorSchemeFile))[settings.settings.colorScheme];
+  try {
+    // Default schemes are in a seperate file and prefixed with default_
+    if(!settings.settings.colorScheme.includes('default_'))
+    {
+      selectedColorScheme = JSON.parse(fs.readFileSync(customColorSchemeFileDirectory))[settings.settings.colorScheme];
+    } else {
+      selectedColorScheme = JSON.parse(fs.readFileSync(colorSchemeFile))[settings.settings.colorScheme];
+    }
+  } catch (err) {
+    console.error(`Error loading custom color scheme: ${err}`);
+    dialog.showMessageBoxSync({
+      buttons: ['OK'],
+      message: 'There was an error loading the selected color scheme.',
+      defaultId: 0,
+      title: 'Failed to load color scheme'
+    });
   }
-  document.documentElement.style.setProperty('--bg-primary', selectedColorScheme.backgroundPrimary);
-  document.documentElement.style.setProperty('--bg-secondary', selectedColorScheme.backgroundSecondary);
-  document.documentElement.style.setProperty('--bg-tertiary', selectedColorScheme.backgroundTertiary);
-  document.documentElement.style.setProperty('--bg-light', selectedColorScheme.backgroundLight);
-  document.documentElement.style.setProperty('--text-primary', selectedColorScheme.textPrimary);
-  document.documentElement.style.setProperty('--text-highlight', selectedColorScheme.textHighlight);
-  document.documentElement.style.setProperty('--text-dark', selectedColorScheme.textDark);
-  document.documentElement.style.setProperty('--text-link', selectedColorScheme.textLink);
-  document.documentElement.style.setProperty('--loadingBar', selectedColorScheme.loadingBar);
 
-  document.getElementById('settingsColorScheme').value = settings.settings.colorScheme;
-  console.log('User settings loaded.');
+  document.documentElement.style.setProperty('--bg-primary', selectedColorScheme.colors.backgroundPrimary);
+  document.documentElement.style.setProperty('--bg-secondary', selectedColorScheme.colors.backgroundSecondary);
+  document.documentElement.style.setProperty('--bg-tertiary', selectedColorScheme.colors.backgroundTertiary);
+  document.documentElement.style.setProperty('--bg-light', selectedColorScheme.colors.backgroundLight);
+  document.documentElement.style.setProperty('--text-primary', selectedColorScheme.colors.textPrimary);
+  document.documentElement.style.setProperty('--text-highlight', selectedColorScheme.colors.textHighlight);
+  document.documentElement.style.setProperty('--text-dark', selectedColorScheme.colors.textDark);
+  document.documentElement.style.setProperty('--text-link', selectedColorScheme.colors.textLink);
+  document.documentElement.style.setProperty('--loadingBar', selectedColorScheme.colors.loadingBar);
 }
 
 function libraryErrorCorrection()
@@ -1572,7 +1592,7 @@ function createSettingsFile(callback)
   // Create a history file
   let jsonTemplate = {
     settings: {
-      colorScheme: 'default',
+      colorScheme: 'default_defaultColorScheme',
       defaultSearch: 'YT',
       volume: 50
     },

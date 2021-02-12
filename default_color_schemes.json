@@ -1,0 +1,62 @@
+{
+  "default_defaultColorScheme": {
+    "name": "Default",
+    "id": "default_defaultColorScheme",
+    "colors": {
+      "backgroundPrimary": "#1d1f21",
+      "backgroundSecondary": "#292c2f",
+      "backgroundTertiary": "#161719",
+      "backgroundLight": "#b5b7b9",
+      "textPrimary": "#818484",
+      "textHighlight": "#b5b7b9",
+      "textDark": "#161719",
+      "textLink": "#3a81c7",
+      "loadingBar": "#44b8ff"
+    }
+  },
+  "default_highContrastColorScheme": {
+    "name": "High Contrast",
+    "id": "default_highContrastColorScheme",
+    "colors": {
+      "backgroundPrimary": "#1d1f21",
+      "backgroundSecondary": "#373c40",
+      "backgroundTertiary": "#171717",
+      "backgroundLight": "#dee2e5",
+      "textPrimary": "#e1e1e1",
+      "textHighlight": "#ffffff",
+      "textDark": "#000000",
+      "textLink": "#4ea7ff",
+      "loadingBar": "#44b8ff"
+    }
+  },
+  "default_lightColorScheme": {
+    "name": "Light",
+    "id": "default_lightColorScheme",
+    "colors": {
+      "backgroundPrimary": "#ced3d6",
+      "backgroundSecondary": "#b3b9bd",
+      "backgroundTertiary": "#d5dade",
+      "backgroundLight": "#898b8c",
+      "textPrimary": "#272b2e",
+      "textHighlight": "#182630",
+      "textDark": "#c0c9cf",
+      "textLink": "#21638f",
+      "loadingBar": "#44b8ff"
+    }
+  },
+  "default_blueColorScheme": {
+    "name": "Midnight Blue",
+    "id": "default_blueColorScheme",
+    "colors": {
+      "backgroundPrimary": "#021624",
+      "backgroundSecondary": "#031f33",
+      "backgroundTertiary": "#010b12",
+      "backgroundLight": "#90cbf5",
+      "textPrimary": "#74797d",
+      "textHighlight": "#a2a5a8",
+      "textDark": "#25282b",
+      "textLink": "#21638f",
+      "loadingBar": "#801f1f"
+    }
+  }
+}
