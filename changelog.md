@@ -2,9 +2,49 @@
 
 This is a log of all the changes made to StreamFusion
 
+# 1.2.0
+
+### Fixes and changes:
+
+* Centred some elements in the player controls.
+
+* Fixed a bug where playing next track would fail when the last track in the library was playing.
+
+* Fixed the loading bar not showing during some procedures when it really should have been.
+
+* Fixed a bug with the window content extending below the player controls.
+
+* Fixed an issue with the checkboxes missing in the playlist manager.
+
+* The library file is now read less frequently during normal operation. This significantly reduces disk usage and speeds up some operations, such as loading a playlist.
+
+* Fixed a bug where the first track in a playlist could not be played if nothing else had been played before.
+
+* Fixed a bug where the loading bar would be stuck on when the previous track was attempted to be played when it was the last item in the play history.
+
+* Reorganized the menu and added some category separators.
+
+### New features:
+
+* Library import and export:
+
+  * You can now export your music and playlists to a .sfd file.
+
+  * You can now import music and playlists from a .sfd file.
+
+* You can now manually import a local audio file to StreamFusion. For the time being you can only import mp3 files.
+
+* Media keys now work when the StreamFusion window is focused. Global OS-wide support may be coming at some point, but right now the best solution would be to basically have a keylogger constantly running in the background, and I don't know about you but that seems like a slight security issue. Supported keys are:
+
+  * Play/pause
+
+  * Next
+
+  * Previous
+
 ## 1.1.4
 
-* License and legal information has changed. Please take time to review them.
+* License and legal information has changed.
 
 ### Fixes and changes:
 

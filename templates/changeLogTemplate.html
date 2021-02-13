@@ -1,12 +1,34 @@
 <h2>Change log</h2>
-<h2>1.1.4</h2>
+<h2>1.2.0</h2>
 
 <h3>Fixes and changes:</h3>
 
-<p>License and legal information has changed. Please take time to review them. By continuing to use StreamFusion, you agree to all of the terms and conditions provided on the "License and legal information" page.</p>
+<ul>
+  <li>Centred some elements in the player controls.</li>
+  <li>Fixed a bug where playing next track would fail when the last track in the library was playing.</li>
+  <li>Fixed the loading bar not showing during some procedures when it really should have been.</li>
+  <li>Fixed a bug with the window content extending below the player controls.</li>
+  <li>Fixed an issue with the checkboxes missing in the playlist manager.</li>
+  <li>The library file is now read less frequently during normal operation. This significantly reduces disk usage and speeds up some operations, such as loading a playlist.</li>
+  <li>Fixed a bug where the first track in a playlist could not be played if nothing else had been played before.</li>
+  <li>Fixed a bug where the loading bar would be stuck on when the previous track was attempted to be played when it was the last item in the play history.</li>
+</ul>
+
+<h3>New features:</h3>
 
 <ul>
-  <li>Reorganized some code. There shouldn't be any end-user visible changes.</li>
+  <li>Library import and export:</li>
+  <ul>
+    <li>You can now export your music and playlists to a .sfd file.</li>
+    <li>You can now import music and playlists from a .sfd file.</li>
+  </ul>
+  <li>You can now manually import a local audio file to StreamFusion. For the time being you can only import mp3 files.</li>
+  <li>Media keys now work when the StreamFusion window is focused. Global OS-wide support may be coming at some point, but right now the best solution would be to basically have a keylogger constantly running in the background, and I don't know about you but that seems like a slight security issue. Supported keys are:</li>
+  <ul>
+    <li>Play/pause</li>
+    <li>Next</li>
+    <li>Previous</li>
+  </ul>
 </ul>
 
 <p>You can find the complete change log for all versions <a class="js-external-link" href="http://bit.ly/StreamFusionUpdate">here.</a></p>

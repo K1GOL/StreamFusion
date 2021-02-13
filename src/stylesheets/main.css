@@ -118,7 +118,7 @@ body {
   margin: 0;
   width: 30%;
   min-width: 160px;
-  height: calc(100% - var(--topBar-height) - var(--player-height));
+  height: calc(100% - var(--topBar-height) - var(--player-height) - 25px);
   background-color: var(--bg-secondary);
   overflow-y: none;
 }
@@ -128,7 +128,7 @@ body {
   padding: 0;
   margin: 0;
   width: 70%;
-  height: calc(100% - var(--topBar-height) - var(--player-height));
+  height: calc(100% - var(--topBar-height) - var(--player-height) - 25px);
   background-color: var(--bg-primary);
   overflow-y: auto;
 }
@@ -352,7 +352,9 @@ body {
 .trackProgressSlider {
   margin-top: 10px;
   -webkit-appearance: none;
-  width: calc(100% - 150px);
+  width: calc(100% - 120px);
+  display: inline-block;
+  margin: auto;
   min-width: 120px;
   height: 10px;
   background: var(--bg-secondary);
@@ -444,9 +446,11 @@ body {
 }
 
 .controlIconsContainer {
+  display: block;
+  margin: auto;
   padding: 5px;
   width: 238px;
-  margin-left: calc((100% - 238px) / 2);
+  /* margin-left: calc((100% - 5 * 40px) / 2); */
 }
 
 .normalInput {
@@ -527,7 +531,6 @@ body {
 }
 
 .playlistCheckbox {
-  appearance: none;
   background-color: var(--bg-light);
 }
 
@@ -602,8 +605,25 @@ body {
   padding: 10px;
 }
 
+.darkSeperator {
+  border: 2px solid var(--bg-tertiary);
+}
+
+.lightSeperator {
+  border: 2px solid var(--text-primary);
+}
+
+.menuSeperator {
+  padding: 0;
+  margin: 0;
+}
+
 #currentTimeLabel {
-  width: 40px;
+  width: 35px;
+}
+
+#totalDurationlabel {
+  width: 35px;
 }
 
 ::-webkit-scrollbar {
@@ -668,10 +688,6 @@ option {
 
 a {
   color: var(--text-link);
-}
-
-hr {
-  border: 2px solid var(--text-primary);
 }
 
 @keyframes loadingBarAnimation {
