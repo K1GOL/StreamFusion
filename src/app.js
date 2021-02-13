@@ -244,8 +244,6 @@ function startup(){
 
   // Add event listener to search bar to automatically update library results
   document.getElementById('searchInput').addEventListener("input", event => {
-    // Clear previous results
-    document.getElementById('mainFrame').innerHTML = ''
     // Clear search cache
     // If cache includes tracks in queue, re-add those to cache
     let tempCache = [];
@@ -447,8 +445,7 @@ function startup(){
         document.getElementById('yourLibrary').style.backgroundColor = 'var(--bg-tertiary)';
         // library is playlist id for the library
         selectedPlaylist = 'library'
-        // Clear previous results and then search
-        document.getElementById('mainFrame').innerHTML = '';
+        // Search
         searchLibrary('');
       });
       // Library is selected by default, so darken the button
@@ -847,9 +844,6 @@ function search(searchQuery)
     searchResultCache.push(item);
   });
 
-
-  // Clear any existing elements
-  document.getElementById('mainFrame').innerHTML = '';
   // Search library
   searchLibrary(searchQuery);
 
@@ -885,6 +879,8 @@ function searchLibrary(searchQuery)
         }
       }
     });
+    // Clear any previous elements
+    document.getElementById('mainFrame').innerHTML = '';
     // Add heading and show results
     document.getElementById('mainFrame').innerHTML += '<h2>Library Search Results</h2>';
     displaySearchResults(results, 'in library');
@@ -895,10 +891,16 @@ function searchLibrary(searchQuery)
     // This is to make them appear in the same order they will be played in.
 
     let finishedSearches = 0;
+    readLibraryFile(() => {
+      // Get tracks in playlist
+      libraryFileData.playlists[selectedPlaylist].tracks.forEach((item) => {
 
-    // Get tracks in playlist
-    libraryFileData.playlists[selectedPlaylist].tracks.forEach((item) => {
         findMusicById(item, (res) => {
+          if(!res)
+          {
+            finishedSearches++;
+            return;
+          }
           // Match search query
           if(res["title"].toLowerCase().includes(searchQuery.toLowerCase()) || res["author"].toLowerCase().includes(searchQuery.toLowerCase()) || res["source"].toLowerCase().includes(searchQuery.toLowerCase()))
           {
@@ -910,8 +912,8 @@ function searchLibrary(searchQuery)
           }
           finishedSearches++;
         });
+      });
     });
-
     // TODO: Improve this, with something else than an interval
     // Wait for all search procedures to be done before showing results
     let totalSearchCount = libraryFileData.playlists[selectedPlaylist].tracks.length;
@@ -920,6 +922,8 @@ function searchLibrary(searchQuery)
       if(finishedSearches >= totalSearchCount)
       {
         clearInterval(awaitMusicSearch);
+        // Clear any previous elements
+        document.getElementById('mainFrame').innerHTML = '';
         // Add heading and show results
         document.getElementById('mainFrame').innerHTML += `<h2>${libraryFileData.playlists[selectedPlaylist].name}</h2>`;
         displaySearchResults(results, 'in library');
@@ -1503,7 +1507,7 @@ async function promptMusicDetails(id, url)
       // maybe fix this, whatever
       // async code is fun
       setTimeout(() => {
-        document.getElementById('mainFrame').innerHTML = '';
+
         searchLibrary('');
       }, 1000);
     }
@@ -1552,7 +1556,6 @@ function removeMusicFromLibraryFile(id)
 
   writeLibraryFile(function(){
     // Show search results again to properly remove item from UI
-    document.getElementById('mainFrame').innerHTML = '';
     searchLibrary('');
   });
 
@@ -2081,8 +2084,7 @@ function updatePlaylistSidebar()
             });
             // Darken button for this playlist
             document.getElementById(`playlistSpan-${value['id']}`).style.backgroundColor = 'var(--bg-tertiary)';
-            // Clear previous results and then search
-            document.getElementById('mainFrame').innerHTML = '';
+            // Search
             searchLibrary('');
             // Set everything in play queue from pos 1 forwards to be playlist
             /* if(musicPlayQueue[0])
@@ -2369,9 +2371,7 @@ function importLibrary()
                   document.getElementById('loadingBar').style.opacity = 0;
                   console.log(`Imported library from ${path}`);
 
-                  // Clear previous results,
-                  // and then search to show updated library
-                  document.getElementById('mainFrame').innerHTML = '';
+                  // Search to show updated library
                   searchLibrary('');
                 });
               }, 3000);

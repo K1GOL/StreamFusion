@@ -2,6 +2,12 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.2.1
+
+### Fixes and changes:
+
+* Fixed an issue where playlists would appear empty when switching between playlists.
+
 # 1.2.0
 
 ### Fixes and changes:
