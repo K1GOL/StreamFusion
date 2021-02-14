@@ -2,7 +2,7 @@
   "name": "streamfusion",
   "productName": "StreamFusion",
   "description": "All-in-one music streaming application",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "author": "K1GOL",
   "copyright": "© 2021, K1GOL",
@@ -10,6 +10,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/K1GOL/StreamFusion.git"
+  },
+  "semistandard": {
+    "ignore": [
+      "build/**/*"
+    ]
   },
   "main": "app/background.js",
   "build": {
@@ -37,11 +42,6 @@
   },
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
-    "preunit": "webpack --config=build/webpack.unit.config.js --env=test --display=none",
-    "unit": "electron-mocha temp/specs.js --renderer --require source-map-support/register",
-    "pree2e": "webpack --config=build/webpack.app.config.js --env=test --display=none && webpack --config=build/webpack.e2e.config.js --env=test --display=none",
-    "e2e": "mocha temp/e2e.js --require source-map-support/register",
-    "test": "npm run unit && npm run e2e",
     "start": "node build/start.js",
     "release": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish=never",
     "deploy": "webpack --config=build/webpack.app.config.js --env=production && electron-builder --win --publish=always"
@@ -67,6 +67,7 @@
     "mocha": "^7.1.1",
     "source-map-support": "^0.5.6",
     "spectron": "^10.0.1",
+    "standard": "^16.0.3",
     "style-loader": "^1.1.4",
     "webpack": "^4.46.0",
     "webpack-cli": "^3.3.6",

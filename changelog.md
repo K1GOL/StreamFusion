@@ -2,6 +2,12 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.2.2
+
+### Fixes and changes:
+
+* Source code now follows the JS Semistandard code style. This should have no end-user visible changes.
+
 ## 1.2.1
 
 ### Fixes and changes:

@@ -2,19 +2,20 @@
 // them in that place after app relaunch).
 // Can be used for more than one window, just construct many
 // instances of it and give each different name.
+import { BrowserWindow, screen } from 'electron';
+
 const fs = require('fs');
 
-import { app, BrowserWindow, screen } from "electron";
-
 export default (name, options) => {
-  const userDataDir = (process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")) + '\\StreamFusion';
+  const userDataDir = (process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + '/.local/share')) + '\\StreamFusion';
   const stateStoreFile = `window-state-${name}.json`;
   const defaultSize = {
     width: options.width,
     height: options.height
   };
   let state = {};
-  let win;
+  // Causes linter error if not const
+  let win; // eslint-disable-line prefer-const
 
   const restore = () => {
     let restoredState = {};
@@ -78,7 +79,7 @@ export default (name, options) => {
 
   win = new BrowserWindow(Object.assign({}, options, state));
 
-  win.on("close", saveState);
+  win.on('close', saveState);
 
   return win;
 };

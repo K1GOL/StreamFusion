@@ -1,9 +1,13 @@
+import './stylesheets/main.css';
+import './helpers/external_links.js';
+import env from 'env';
+
 const ytsr = require('ytsr');
 const fs = require('fs');
 const ytdl = require('ytdl-core');
 const { getAudioDurationInSeconds } = require('get-audio-duration');
 const win = require('electron').remote.getCurrentWindow();
-const scraper = require("soundcloud-scraper");
+const scraper = require('soundcloud-scraper');
 const https = require('https');
 const upgrade = require('./upgrade.js');
 const util = require('./util.js');
@@ -13,7 +17,7 @@ const { shell } = require('electron');
 
 const softwareVersion = app.getVersion();
 
-const dataDirectory = (env.name == 'production' ? ((process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")) + '\\StreamFusion') : ((process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share")) + '\\StreamFusion (' + env.name + ')'));
+const dataDirectory = (env.name === 'production' ? ((process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + '/.local/share')) + '\\StreamFusion') : ((process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + '/.local/share')) + '\\StreamFusion (' + env.name + ')'));
 const localMusicDirectory = dataDirectory + '\\music';
 const streamingDirectory = dataDirectory + '\\streaming';
 const libraryFilePath = dataDirectory + '\\library.json';
@@ -21,11 +25,11 @@ const historyFilePath = dataDirectory + '\\history.json';
 const settingsFilePath = dataDirectory + '\\settings.json';
 const customColorSchemeFilePath = dataDirectory + '\\custom_color_scheme.json';
 
-const colorSchemeFile = (env.name == 'production' ? 'resources/default_color_schemes.json' : 'default_color_schemes.json');
-const listItemTemplate = (env.name == 'production' ? 'resources/templates/listItemTemplate.html' : 'templates/listItemTemplate.html');
-const playlistItemTemplate = (env.name == 'production' ? 'resources/templates/playlistItemTemplate.html' : 'templates/playlistItemTemplate.html');
-const changeLogTemplate = (env.name == 'production' ? 'resources/templates/changeLogTemplate.html' : 'templates/changeLogTemplate.html');
-const legalInfo = (env.name == 'production' ? 'resources/templates/legalInfoWindowTemplate.html' : 'templates/legalInfoWindowTemplate.html');
+const colorSchemeFile = (env.name === 'production' ? 'resources/default_color_schemes.json' : 'default_color_schemes.json');
+const listItemTemplate = (env.name === 'production' ? 'resources/templates/listItemTemplate.html' : 'templates/listItemTemplate.html');
+const playlistItemTemplate = (env.name === 'production' ? 'resources/templates/playlistItemTemplate.html' : 'templates/playlistItemTemplate.html');
+const changeLogTemplate = (env.name === 'production' ? 'resources/templates/changeLogTemplate.html' : 'templates/changeLogTemplate.html');
+const legalInfo = (env.name === 'production' ? 'resources/templates/legalInfoWindowTemplate.html' : 'templates/legalInfoWindowTemplate.html');
 
 let soundCloud;
 
@@ -53,7 +57,7 @@ let isUsingLibraryFile = false;
 let soundCloudAPIKey;
 
 let musicPlayQueue = [];
-let lastPlayedMusic = [];
+const lastPlayedMusic = [];
 let selectedPlaylist = 'library';
 let musicIsPlaying = false;
 let duration;
@@ -66,37 +70,34 @@ let menuIsOpen = false;
 
 let loop = false;
 let shuffle = false;
-let recordPlayHistory = true;
 
 // -----
 // Audio Context Setup
 // -----
 
 // Make audio contex
-let context = new AudioContext() || new webkitAudioContext(),
-      request = new XMLHttpRequest();
-let gainNode = context.createGain();
+// Linter doesn't understand this, so just disable it.
+/* eslint-disable no-undef */
+/* eslint-disable new-cap */
+const context = new AudioContext() || new webkitAudioContext();
+const request = new XMLHttpRequest();
+const gainNode = context.createGain();
 let bufferSource = context.createBufferSource();
-let parser = new DOMParser;
-
-// Interval for progress bar updating
-let progressUpdater;
+const parser = new DOMParser();
+/* eslint-enable no-undef */
+/* eslint-enable new-cap */
 
 // -----
 // End of AudioContext and playback related stuff
 // -----
 
-import "./stylesheets/main.css";
-import "./helpers/external_links.js";
-import env from "env";
-
 const osMap = {
-  win32: "Windows",
-  darwin: "macOS",
-  linux: "Linux"
+  win32: 'Windows',
+  darwin: 'macOS',
+  linux: 'Linux'
 };
 
-function startup(){
+function startup () {
   // -----
   // Start-up procedures
   // -----
@@ -106,57 +107,50 @@ function startup(){
   win.setMinimumSize(600, 500);
 
   // Check that library file, history file, settings file and data directories exist
-  if(!fs.existsSync(dataDirectory))
-  {
+  if (!fs.existsSync(dataDirectory)) {
     fs.mkdirSync(dataDirectory);
   }
 
   // Clear streaming directory if exists
-  if(fs.existsSync(streamingDirectory))
-  {
+  if (fs.existsSync(streamingDirectory)) {
     fs.rmdirSync(streamingDirectory, { recursive: true });
   }
   fs.mkdirSync(streamingDirectory);
 
-  if(!fs.existsSync(localMusicDirectory))
-  {
+  if (!fs.existsSync(localMusicDirectory)) {
     fs.mkdirSync(localMusicDirectory);
   }
 
-  if(!fs.existsSync(libraryFilePath))
-  {
-    createLibraryFile(function(){});
+  if (!fs.existsSync(libraryFilePath)) {
+    createLibraryFile(function () {});
   }
 
-  if(!fs.existsSync(historyFilePath))
-  {
-    util.createHistoryFile(historyFilePath, function(){});
+  if (!fs.existsSync(historyFilePath)) {
+    util.createHistoryFile(historyFilePath, function () {});
   }
 
-  if(!fs.existsSync(customColorSchemeFilePath))
-  {
-    createCustomColorFile(function(){});
+  if (!fs.existsSync(customColorSchemeFilePath)) {
+    createCustomColorFile(function () {});
   }
 
-  if(!fs.existsSync(settingsFilePath))
-  {
+  if (!fs.existsSync(settingsFilePath)) {
     // Read file after creation
-    util.createSettingsFile(settingsFilePath, function(){readSettingsFile(() => {
+    util.createSettingsFile(settingsFilePath, function () {
+      readSettingsFile(() => {
       // Ask user to accept terms and conditions
-      promptToS();
-    })});
+        promptToS();
+      });
+    });
   } else {
     // Load user settings
     readSettingsFile(() => {
-      if(!settings.meta.hasAcceptedToS)
-      {
+      if (!settings.meta.hasAcceptedToS) {
         // Ask user to accept terms and conditions
         promptToS();
       }
       // Set volume to saved value
-      let awaitVolumeSliderLoad = setInterval(() => {
-        if(document.getElementById('volumeSlider'))
-        {
+      const awaitVolumeSliderLoad = setInterval(() => {
+        if (document.getElementById('volumeSlider')) {
           clearInterval(awaitVolumeSliderLoad);
           document.getElementById('volumeSlider').value = settings.settings.volume;
           gainNode.gain.value = document.getElementById('volumeSlider').value / 100;
@@ -166,16 +160,14 @@ function startup(){
       }, 50);
 
       // Check that there is lastStarted info
-      if(settings.meta.lastStarted == undefined)
-      {
+      if (settings.meta.lastStarted === undefined) {
         settings.meta.lastStarted = {};
       }
 
       // Check info about last started state
       // Handle after update procedures
-      if(settings.meta.lastStarted.version != softwareVersion)
-      {
-        let lastVer = (settings.meta.lastStarted.version ? settings.meta.lastStarted.version : '0.0.0');
+      if (settings.meta.lastStarted.version !== softwareVersion) {
+        const lastVer = (settings.meta.lastStarted.version ? settings.meta.lastStarted.version : '0.0.0');
 
         // Notify server about the update
         util.notifyUpdateDeployment(lastVer, softwareVersion);
@@ -191,7 +183,7 @@ function startup(){
             customColorFile: customColorSchemeFilePath
           });
           // Wait for upgrade to finish
-          setTimeout(() => {loadSettings();}, 1000);
+          setTimeout(() => { loadSettings(); }, 1000);
         });
       } else {
         loadSettings();
@@ -203,14 +195,11 @@ function startup(){
 
   // Add event listeners for media keys
   document.addEventListener('keyup', ({ key }) => {
-    if(key == 'MediaPlayPause')
-    {
+    if (key === 'MediaPlayPause') {
       playPause(musicPlayQueue[0]);
-    } else if(key == 'MediaTrackNext')
-    {
+    } else if (key === 'MediaTrackNext') {
       playNext();
-    } else if(key == 'MediaTrackPrevious')
-    {
+    } else if (key === 'MediaTrackPrevious') {
       playPrevious();
     }
   });
@@ -233,9 +222,9 @@ function startup(){
   });
 
   // Add event listener to enter key pressed with search bar in focus
-  document.getElementById('searchInput').addEventListener("keydown", event => {
+  document.getElementById('searchInput').addEventListener('keydown', event => {
     // Key code for enter is 13
-    if (event.keyCode == 13) {
+    if (event.keyCode === 13) {
       // Clear previous results and then search
       document.getElementById('mainFrame').innerHTML = '';
       search(document.getElementById('searchInput').value);
@@ -243,13 +232,12 @@ function startup(){
   });
 
   // Add event listener to search bar to automatically update library results
-  document.getElementById('searchInput').addEventListener("input", event => {
+  document.getElementById('searchInput').addEventListener('input', event => {
     // Clear search cache
     // If cache includes tracks in queue, re-add those to cache
-    let tempCache = [];
+    const tempCache = [];
     searchResultCache.forEach((item) => {
-      if(musicPlayQueue.includes(item.id))
-      {
+      if (musicPlayQueue.includes(item.id)) {
         tempCache.push(item);
       }
     });
@@ -274,9 +262,8 @@ function startup(){
   // -----
   // Menu button event handlers
   // -----
-  let awaitMenuLoad = setInterval(() => {
-    if(document.getElementById('menuItem-reload') && document.getElementById('windowControl-close') && document.getElementById('menu'))
-    {
+  const awaitMenuLoad = setInterval(() => {
+    if (document.getElementById('menuItem-reload') && document.getElementById('windowControl-close') && document.getElementById('menu')) {
       clearInterval(awaitMenuLoad);
 
       // Add event listeners to window controls
@@ -298,15 +285,14 @@ function startup(){
       // Add event listener to open/close menu button
       document.getElementById('openMenuButton').addEventListener('click', () => {
         menuIsOpen = !menuIsOpen;
-        if(menuIsOpen)
-        {
-          document.getElementById('menuIcon').src = 'icons/cross.png'
+        if (menuIsOpen) {
+          document.getElementById('menuIcon').src = 'icons/cross.png';
           document.getElementById('menu').style.display = 'block';
-          setTimeout(() => {document.getElementById('menu').style.left = '0px';}, 30);
+          setTimeout(() => { document.getElementById('menu').style.left = '0px'; }, 30);
         } else {
-          document.getElementById('menuIcon').src = 'icons/menu.png'
+          document.getElementById('menuIcon').src = 'icons/menu.png';
           document.getElementById('menu').style.left = '-300px';
-          setTimeout(() => {document.getElementById('menu').style.display = 'none';}, 300);
+          setTimeout(() => { document.getElementById('menu').style.display = 'none'; }, 300);
         }
       });
 
@@ -314,7 +300,7 @@ function startup(){
       document.getElementById('menuItem-settings').addEventListener('click', () => {
         // Show settings window
         document.getElementById('settingsModalContainer').style.display = 'block';
-        setTimeout(() => {document.getElementById('settingsModalContainer').style.opacity = 1;}, 30);
+        setTimeout(() => { document.getElementById('settingsModalContainer').style.opacity = 1; }, 30);
       });
 
       // Apply settings button
@@ -364,7 +350,7 @@ function startup(){
           console.log('Accepted ToS.');
           // Hide modal window
           document.getElementById('legalModalContainer').style.opacity = 0;
-          setTimeout(function(){document.getElementById('legalModalContainer').style.display = "none";}, 300);
+          setTimeout(function () { document.getElementById('legalModalContainer').style.display = 'none'; }, 300);
           // Reload window
           // TODO: Fix bug where playlists get duplicated when
           // license and legal window is opened.
@@ -377,7 +363,7 @@ function startup(){
         settings.meta.hasAcceptedToS = false;
         writeSettingsFile(() => {
           console.log('Rejected ToS.');
-          let res = dialog.showMessageBoxSync({
+          dialog.showMessageBoxSync({
             buttons: ['OK'],
             message: 'You have not accepted the provided terms and conditions. You must accept them to continue using StreamFusion. The program will now exit. When you start StreamFusion, you will be asked to accept the terms and conditions.',
             defaultId: 0,
@@ -386,7 +372,6 @@ function startup(){
           app.quit();
         });
       });
-
     }
   }, 20);
 
@@ -395,9 +380,8 @@ function startup(){
   // -----
 
   // Read data in library file
-  readLibraryFile(function(){
-    if(libraryFileData)
-    {
+  readLibraryFile(function () {
+    if (libraryFileData) {
       // Display library
       // Empty search query shows everything
       searchLibrary('');
@@ -407,24 +391,21 @@ function startup(){
   });
 
   // Progress bar updating
-  progressUpdater = setInterval(function(){
-    if(musicIsPlaying && !freezeProgressBar)
-    {
+  setInterval(function () {
+    if (musicIsPlaying && !freezeProgressBar) {
       document.getElementById('trackProgressSlider').value = (((context.currentTime - contextTimeReference + timestamp) / duration) * 100).toFixed(3);
     }
     // Also set the time label if possible
-    if(contextTimeReference && !freezeProgressBar)
-    {
-      util.convertToTimestamp(context.currentTime - contextTimeReference + timestamp, function(time){
+    if (contextTimeReference && !freezeProgressBar) {
+      util.convertToTimestamp(context.currentTime - contextTimeReference + timestamp, function (time) {
         document.getElementById('currentTimeLabel').innerHTML = time;
       });
     }
   }, 200);
 
   // First wait for elements to load
-  let awaitLoad = setInterval(function(){
-    if(document.getElementById('versionInfo') && document.getElementById('playerControlPlayPause') && document.getElementById('createNewPlaylist') && document.getElementById('yourLibrary') && document.getElementById('trackProgressSlider'))
-    {
+  const awaitLoad = setInterval(function () {
+    if (document.getElementById('versionInfo') && document.getElementById('playerControlPlayPause') && document.getElementById('createNewPlaylist') && document.getElementById('yourLibrary') && document.getElementById('trackProgressSlider')) {
       clearInterval(awaitLoad);
 
       // Set version info on about page
@@ -444,7 +425,7 @@ function startup(){
         // Darken this button
         document.getElementById('yourLibrary').style.backgroundColor = 'var(--bg-tertiary)';
         // library is playlist id for the library
-        selectedPlaylist = 'library'
+        selectedPlaylist = 'library';
         // Search
         searchLibrary('');
       });
@@ -455,7 +436,7 @@ function startup(){
       // then resume from new timestamp
       document.getElementById('trackProgressSlider').addEventListener('change', function (evt) {
         // Start playing from new timestamp
-        try{context.suspend();}catch(err){}
+        try { context.suspend(); } catch (err) {}
         playMusic(musicPlayQueue[0], Math.round((this.value / 100) * duration));
       });
 
@@ -483,47 +464,44 @@ function startup(){
       });
 
       // Play/pause
-      document.getElementById('playerControlPlayPause').addEventListener("click", function(){
+      document.getElementById('playerControlPlayPause').addEventListener('click', function () {
         // Just call playPause for whatever is currently playing, if any
-        if(musicPlayQueue[0])
-        {
+        if (musicPlayQueue[0]) {
           playPause(musicPlayQueue[0]);
         }
       });
 
       // Next button
-      document.getElementById('playerControlNext').addEventListener("click", function(){
+      document.getElementById('playerControlNext').addEventListener('click', function () {
         playNext();
       });
 
       // Previous button
-      document.getElementById('playerControlPrevious').addEventListener("click", function(){
+      document.getElementById('playerControlPrevious').addEventListener('click', function () {
         playPrevious();
       });
 
       // Loop
-      document.getElementById('playerControlLoop').addEventListener("click", function(){
+      document.getElementById('playerControlLoop').addEventListener('click', function () {
         loop = !loop;
 
         // Add/remove a border
-        if(loop)
-        {
-          document.getElementById('playerControlLoop').style.border = "3px solid var(--loadingBar)"
+        if (loop) {
+          document.getElementById('playerControlLoop').style.border = '3px solid var(--loadingBar)';
         } else {
-          document.getElementById('playerControlLoop').style.border = "3px solid var(--bg-primary)"
+          document.getElementById('playerControlLoop').style.border = '3px solid var(--bg-primary)';
         }
       });
 
       // Shuffle
-      document.getElementById('playerControlShuffle').addEventListener("click", function(){
+      document.getElementById('playerControlShuffle').addEventListener('click', function () {
         shuffle = !shuffle;
 
         // Add/remove a border
-        if(shuffle)
-        {
-          document.getElementById('playerControlShuffle').style.border = "3px solid var(--loadingBar)"
+        if (shuffle) {
+          document.getElementById('playerControlShuffle').style.border = '3px solid var(--loadingBar)';
         } else {
-          document.getElementById('playerControlShuffle').style.border = "3px solid var(--bg-primary)"
+          document.getElementById('playerControlShuffle').style.border = '3px solid var(--bg-primary)';
         }
       });
     }
@@ -531,15 +509,13 @@ function startup(){
 
   // Set event listeners for various cancel buttons
   // Done automatically by looking at the data-associatedModal attribute
-  let awaitButtonsLoad = setInterval(() => {
-    if(document.getElementsByClassName('cancelButton').length > 0)
-    {
+  const awaitButtonsLoad = setInterval(() => {
+    if (document.getElementsByClassName('cancelButton').length > 0) {
       clearInterval(awaitButtonsLoad);
       Array.from(document.getElementsByClassName('cancelButton')).forEach(item => {
         // Exception for playlistManagerModalContainer,
         // requires library file to be freed too
-        if(item.getAttribute('data-associatedModal') == "playlistManagerModalContainer")
-        {
+        if (item.getAttribute('data-associatedModal') === 'playlistManagerModalContainer') {
           item.addEventListener('click', () => {
             isUsingLibraryFile = false;
           });
@@ -547,7 +523,7 @@ function startup(){
         // Generic add event listener
         item.addEventListener('click', () => {
           document.getElementById(item.getAttribute('data-associatedModal')).style.opacity = 0;
-          setTimeout(function(){document.getElementById(item.getAttribute('data-associatedModal')).style.display = "none";}, 300);
+          setTimeout(function () { document.getElementById(item.getAttribute('data-associatedModal')).style.display = 'none'; }, 300);
         });
       });
     }
@@ -555,15 +531,14 @@ function startup(){
 
   // Set event listeners for enter key press in text inputs
   // Done automatically by looking at the data-associatedButton attribute
-  let awaitInputLoad = setInterval(() => {
-    if(document.getElementsByClassName('listenForEnterInput').length > 0)
-    {
+  const awaitInputLoad = setInterval(() => {
+    if (document.getElementsByClassName('listenForEnterInput').length > 0) {
       clearInterval(awaitInputLoad);
       Array.from(document.getElementsByClassName('listenForEnterInput')).forEach(item => {
         // Generic add event listener
         item.addEventListener('keydown', event => {
           // Key code for enter is 13
-          if (event.keyCode == 13) {
+          if (event.keyCode === 13) {
             document.getElementById(item.getAttribute('data-associatedButton')).click();
           }
         });
@@ -576,27 +551,24 @@ function startup(){
   // -----
 }
 
-function readSettingsFile(callback)
-{
+function readSettingsFile (callback) {
   console.log(`Reading settings file from ${settingsFilePath}`);
   // Read settings file
-  try
-  {
+  try {
     // Read file contents into JSON
     fs.readFile(settingsFilePath, (err, data) => {
-        if (err) throw err;
-        settings = JSON.parse(data);
-        // Done, call callback
-        callback();
+      if (err) throw err;
+      settings = JSON.parse(data);
+      // Done, call callback
+      callback();
     });
-  } catch(err) {
+  } catch (err) {
     // Failed to read
     console.error(`Failed to read settings file: ${err}`);
     // Check if file exists, create if missing
-    if(!fs.existsSync(settingsFilePath))
-    {
+    if (!fs.existsSync(settingsFilePath)) {
       // Read file after creation
-      util.createSettingsFile(settingsFilePath, function(){
+      util.createSettingsFile(settingsFilePath, function () {
         // Reload
         BrowserWindow.getFocusedWindow().webContents.reloadIgnoringCache();
       });
@@ -604,42 +576,39 @@ function readSettingsFile(callback)
   }
 }
 
-function writeSettingsFile(callback)
-{
+function writeSettingsFile (callback) {
   // Write JSON to settings file
   fs.writeFile(settingsFilePath, JSON.stringify(settings), 'utf8', function (err) {
     if (err) {
-        console.error('Unable to write settings file JSON!');
-        // Try again
-        writeSettingsFile(() => {callback();});
+      console.error('Unable to write settings file JSON!');
+      // Try again
+      writeSettingsFile(() => { callback(); });
     }
     console.log('Settings file data written to disk.');
     callback();
   });
 }
 
-function promptToS()
-{
+function promptToS () {
   // Shows legal info and license modal
   // Read stuff from file and add to html
-  fs.readFile(legalInfo, 'utf8' , (err, data) => {
+  fs.readFile(legalInfo, 'utf8', (err, data) => {
     if (err) {
-      console.error(err)
+      console.error(err);
       return;
     }
     document.getElementById('legalInfo').innerHTML = data;
 
     // Show the modal window
-    document.getElementById('legalModalContainer').style.display = "block";
-    setTimeout(function(){document.getElementById('legalModalContainer').style.opacity = 1;}, 20);
+    document.getElementById('legalModalContainer').style.display = 'block';
+    setTimeout(function () { document.getElementById('legalModalContainer').style.opacity = 1; }, 20);
   });
   // Accept and reject event handlers to exit the window are added in startup
 }
 
-function createCustomColorFile()
-{
+function createCustomColorFile () {
   // Create a color scheme file
-  let jsonTemplate = {
+  const jsonTemplate = {
     customColorScheme: {
       name: 'Custom color scheme',
       id: 'customColorScheme',
@@ -655,41 +624,38 @@ function createCustomColorFile()
         loadingBar: '#44b8ff'
       }
     }
-  }
+  };
   fs.writeFile(customColorSchemeFilePath, JSON.stringify(jsonTemplate), 'utf8', function (err) {
     if (err) {
-        console.error(err);
+      console.error(err);
     }
 
     console.log(`Custom color scheme JSON file created at ${customColorSchemeFilePath}`);
   });
-
 }
 
-function showAboutPage()
-{
+function showAboutPage () {
   // Shows change log in about window
-  fs.readFile(changeLogTemplate, 'utf8' , (err, data) => {
+  fs.readFile(changeLogTemplate, 'utf8', (err, data) => {
     if (err) {
-      console.error(err)
+      console.error(err);
       return;
     }
     document.getElementById('changeLogContainer').innerHTML = data;
 
     // Show the modal window
-    document.getElementById('aboutModalContainer').style.display = "block";
-    setTimeout(function(){document.getElementById('aboutModalContainer').style.opacity = 1;}, 20);
+    document.getElementById('aboutModalContainer').style.display = 'block';
+    setTimeout(function () { document.getElementById('aboutModalContainer').style.opacity = 1; }, 20);
   });
 }
 
-function applySettings()
-{
+function applySettings () {
   // Called when apply button is clicked in settings menu.
   // Takes inputs from the settings menu
   // and writes them to the settings object.
   // Hide the settings modal
   document.getElementById('settingsModalContainer').style.opacity = 0;
-  setTimeout(function(){document.getElementById('settingsModalContainer').style.display = "none";}, 300);
+  setTimeout(function () { document.getElementById('settingsModalContainer').style.display = 'none'; }, 300);
 
   settings.settings.colorScheme = document.getElementById('settingsColorScheme').value;
   settings.settings.defaultSearch = document.getElementById('settingsSearchPlatformSelect').value;
@@ -700,8 +666,7 @@ function applySettings()
   });
 }
 
-function loadSettings()
-{
+function loadSettings () {
   // Loads user settings and then applies them
 
   // Default search setting
@@ -710,8 +675,7 @@ function loadSettings()
 
   // Color scheme
   // Fix undefined color scheme
-  if(settings.settings.colorScheme == undefined || settings.settings.colorScheme == '')
-  {
+  if (settings.settings.colorScheme === undefined || settings.settings.colorScheme === '') {
     settings.settings.colorScheme = 'default_defaultColorScheme';
   }
 
@@ -722,33 +686,30 @@ function loadSettings()
 
   // For each color scheme, add an option in the select
   fs.readFile(colorSchemeFile, (err, data) => {
+    if (err) throw err;
+
+    Object.entries(JSON.parse(data)).forEach(([key, value]) => {
+      document.getElementById('settingsColorScheme').innerHTML += `<option value="${value.id}">${value.name}</option>`;
+    });
+
+    fs.readFile(customColorSchemeFilePath, (err, data) => {
       if (err) throw err;
 
       Object.entries(JSON.parse(data)).forEach(([key, value]) => {
-        document.getElementById('settingsColorScheme').innerHTML += `<option value="${value['id']}">${value['name']}</option>`
+        document.getElementById('settingsColorScheme').innerHTML += `<option value="${value.id}">${value.name}</option>`;
       });
-
-      fs.readFile(customColorSchemeFilePath, (err, data) => {
-          if (err) throw err;
-
-          Object.entries(JSON.parse(data)).forEach(([key, value]) => {
-            document.getElementById('settingsColorScheme').innerHTML += `<option value="${value['id']}">${value['name']}</option>`
-          });
-          // Set a timeout before updating select box in options.
-          // Without causes value to not be set correctly sometimes
-          setTimeout(() => {document.getElementById('settingsColorScheme').value = settings.settings.colorScheme;}, 300);
-      });
+      // Set a timeout before updating select box in options.
+      // Without causes value to not be set correctly sometimes
+      setTimeout(() => { document.getElementById('settingsColorScheme').value = settings.settings.colorScheme; }, 300);
+    });
   });
-
-
 
   // Load selected color scheme to selectedColorScheme,
   // then apply values from that to style
   let selectedColorScheme = {};
   try {
     // Default schemes are in a seperate file and prefixed with default_
-    if(!settings.settings.colorScheme.includes('default_'))
-    {
+    if (!settings.settings.colorScheme.includes('default_')) {
       selectedColorScheme = JSON.parse(fs.readFileSync(customColorSchemeFilePath))[settings.settings.colorScheme];
     } else {
       selectedColorScheme = JSON.parse(fs.readFileSync(colorSchemeFile))[settings.settings.colorScheme];
@@ -774,8 +735,7 @@ function loadSettings()
   document.documentElement.style.setProperty('--loadingBar', selectedColorScheme.colors.loadingBar);
 }
 
-function libraryErrorCorrection()
-{
+function libraryErrorCorrection () {
   // Tries to fix NN sources and 0:00 durations in library
   readLibraryFile(() => {
     // Stop modification of data while processing
@@ -783,28 +743,24 @@ function libraryErrorCorrection()
     Object.entries(libraryFileData.music).forEach(([key, value]) => {
       // Source error correction
       // Get correct source from ID
-      if(value['source'] == 'NN')
-      {
-        switch(value['id'] .substring(0, 2))
-        {
+      if (value.source === 'NN') {
+        switch (value.id.substring(0, 2)) {
           case 'YT':
-            value['source'] = 'YT';
+            value.source = 'YT';
             break;
           case 'SC':
-            value['source'] = 'SC';
+            value.source = 'SC';
             break;
           default:
-            console.log(`No source error correction could be made on ${item.id}`);
+            console.log(`No source error correction could be made on ${value.id}`);
         }
       }
       // Duration error correction
-      if(value['duration'] == '0:00')
-      {
-        if(fs.existsSync(`${localMusicDirectory}\\${value['id']}.mp3`))
-        {
-          getAudioDurationInSeconds(`${localMusicDirectory}\\${value['id']}.mp3`).then((time) => {
+      if (value.duration === '0:00') {
+        if (fs.existsSync(`${localMusicDirectory}\\${value.id}.mp3`)) {
+          getAudioDurationInSeconds(`${localMusicDirectory}\\${value.id}.mp3`).then((time) => {
             util.convertToTimestamp(time, (convertedTimestamp) => {
-              value['duration'] = convertedTimestamp;
+              value.duration = convertedTimestamp;
             });
           });
         }
@@ -814,11 +770,9 @@ function libraryErrorCorrection()
   });
 }
 
-function search(searchQuery)
-{
+function search (searchQuery) {
   // Return if empty search query
-  if(searchQuery == '')
-  {
+  if (searchQuery === '') {
     return;
   }
   // Master search function.
@@ -830,10 +784,9 @@ function search(searchQuery)
 
   // Clear search cache
   // If cache includes tracks in queue, re-add those to cache
-  let tempCache = [];
+  const tempCache = [];
   searchResultCache.forEach((item) => {
-    if(musicPlayQueue.includes(item.id))
-    {
+    if (musicPlayQueue.includes(item.id)) {
       tempCache.push(item);
     }
   });
@@ -848,8 +801,7 @@ function search(searchQuery)
   searchLibrary(searchQuery);
 
   // Search online on selected platform
-  switch(document.getElementById('searchPlatformSelect').value)
-  {
+  switch (document.getElementById('searchPlatformSelect').value) {
     case 'YT':
       searchYouTube(searchQuery);
       break;
@@ -861,20 +813,16 @@ function search(searchQuery)
   }
 }
 
-function searchLibrary(searchQuery)
-{
-  let results = [];
+function searchLibrary (searchQuery) {
+  const results = [];
   // Search for query in the library
 
   // Default mode to list all library matches when no playlist is selecetd
-  if(selectedPlaylist == 'library')
-  {
+  if (selectedPlaylist === 'library') {
     Object.entries(libraryFileData.music).forEach(([key, value]) => {
-      if(value["title"].toLowerCase().includes(searchQuery.toLowerCase()) || value["author"].toLowerCase().includes(searchQuery.toLowerCase()) || value["source"].toLowerCase().includes(searchQuery.toLowerCase()))
-      {
+      if (value.title.toLowerCase().includes(searchQuery.toLowerCase()) || value.author.toLowerCase().includes(searchQuery.toLowerCase()) || value.source.toLowerCase().includes(searchQuery.toLowerCase())) {
         // Check that not already in the array
-        if(!results.includes(libraryFileData.music[key]))
-        {
+        if (!results.includes(libraryFileData.music[key])) {
           results.push(libraryFileData.music[key]);
         }
       }
@@ -894,19 +842,15 @@ function searchLibrary(searchQuery)
     readLibraryFile(() => {
       // Get tracks in playlist
       libraryFileData.playlists[selectedPlaylist].tracks.forEach((item) => {
-
         findMusicById(item, (res) => {
-          if(!res)
-          {
+          if (!res) {
             finishedSearches++;
             return;
           }
           // Match search query
-          if(res["title"].toLowerCase().includes(searchQuery.toLowerCase()) || res["author"].toLowerCase().includes(searchQuery.toLowerCase()) || res["source"].toLowerCase().includes(searchQuery.toLowerCase()))
-          {
+          if (res.title.toLowerCase().includes(searchQuery.toLowerCase()) || res.author.toLowerCase().includes(searchQuery.toLowerCase()) || res.source.toLowerCase().includes(searchQuery.toLowerCase())) {
             // Check that not already in the array
-            if(!results.includes(res))
-            {
+            if (!results.includes(res)) {
               results.push(res);
             }
           }
@@ -916,11 +860,10 @@ function searchLibrary(searchQuery)
     });
     // TODO: Improve this, with something else than an interval
     // Wait for all search procedures to be done before showing results
-    let totalSearchCount = libraryFileData.playlists[selectedPlaylist].tracks.length;
+    const totalSearchCount = libraryFileData.playlists[selectedPlaylist].tracks.length;
 
-    let awaitMusicSearch = setInterval(() => {
-      if(finishedSearches >= totalSearchCount)
-      {
+    const awaitMusicSearch = setInterval(() => {
+      if (finishedSearches >= totalSearchCount) {
         clearInterval(awaitMusicSearch);
         // Clear any previous elements
         document.getElementById('mainFrame').innerHTML = '';
@@ -932,18 +875,15 @@ function searchLibrary(searchQuery)
   }
 }
 
-async function searchYouTube(searchQuery)
-{
+async function searchYouTube (searchQuery) {
   // Get YT search results
 
   // Sometimes fails, just try again
   let searchResults;
-  try
-  {
+  try {
     searchResults = await ytsr(searchQuery);
-  } catch (err)
-  {
-    console.error(`YTSR error: ${err}`)
+  } catch (err) {
+    console.error(`YTSR error: ${err}`);
     searchYouTube(searchQuery);
     return;
   }
@@ -952,20 +892,19 @@ async function searchYouTube(searchQuery)
   // Might be disabled by other code that runs faster
   // But only do for 10 seconds, then stop
   let iterationCount = 0;
-  let loadingBarChecker = setInterval(function(){
+  const loadingBarChecker = setInterval(function () {
     // Turn on loading bar
     document.getElementById('loadingBar').style.opacity = 1;
 
     iterationCount++;
-    if(iterationCount > 100)
-    {
+    if (iterationCount > 100) {
       clearInterval(loadingBarChecker);
     }
   }, 100);
 
   // Turn first 20 results into standard format JSON
   // An array that stores the results
-  let results = [];
+  const results = [];
   // In addition to returning videos, ytsr also returns stuff
   // like mixes and playlists.
   // Can't be arsed to filter this in the search query,
@@ -975,11 +914,9 @@ async function searchYouTube(searchQuery)
   // TODO: Use filters instead of whatever this shite above is
   let j = 0;
 
-  for(let i = 0; i < 20; i++)
-  {
-    let k = i + j;
-    if(searchResults.items[k].type != 'video')
-    {
+  for (let i = 0; i < 20; i++) {
+    const k = i + j;
+    if (searchResults.items[k].type !== 'video') {
       j++;
       continue;
     } else {
@@ -1002,113 +939,104 @@ async function searchYouTube(searchQuery)
     }
   }
   // Add header if not present
-  if(!document.getElementById('mainFrame').innerHTML.includes('<h2>Online Search Results</h2>'))
-  {
-    document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>'
+  if (!document.getElementById('mainFrame').innerHTML.includes('<h2>Online Search Results</h2>')) {
+    document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>';
   }
   displaySearchResults(results, 'on YouTube');
   clearInterval(loadingBarChecker);
 }
 
-function searchSoundCloud(searchQuery)
-{
+function searchSoundCloud (searchQuery) {
   console.log(`Searching SoundCloud for ${searchQuery} with API key ${soundCloudAPIKey}`);
 
   // Send https request for search
   // Define settings
-  let settings = {
+  const settings = {
     hostname: 'api-v2.soundcloud.com',
     path: `/search?q=${encodeURI(searchQuery)}&client_id=${soundCloudAPIKey}&limit=20&app_locale=en`,
     method: 'GET'
-  }
+  };
 
   // Handle request
   https.get(settings, (res) => {
-  let data = '';
+    let data = '';
 
-  // A chunk of data has been received.
-  res.on('data', (chunk) => {
-    data += chunk;
-  });
+    // A chunk of data has been received.
+    res.on('data', (chunk) => {
+      data += chunk;
+    });
 
-  // The whole response has been received. Print out the result.
-  res.on('end', () => {
-    let results = JSON.parse(data);
-    // Results are ready
-    // Turn first 20 results into standard format JSON
-    let formattedResults = [];
+    // The whole response has been received. Print out the result.
+    res.on('end', () => {
+      const results = JSON.parse(data);
+      // Results are ready
+      // Turn first 20 results into standard format JSON
+      const formattedResults = [];
 
-    // Duration in results is in ms
-    results.collection.forEach((item) => {
+      // Duration in results is in ms
+      results.collection.forEach((item) => {
       // Ignore things other than tracks
-      if(item.kind != 'track')
-      {
-        return;
-      }
-      util.convertToTimestamp(item.duration / 1000, convertedTime => {
-        formattedResults.push({
-          title: item.title,
-          author: item.user.username,
-          duration: convertedTime,
-          url: item.permalink_url,
-          id: `SC-${item.id}`,
-          source: 'SC'
-        });
-        searchResultCache.push({
-          title: item.title,
-          author: item.user.username,
-          duration: convertedTime,
-          url: item.permalink_url,
-          id: `SC-${item.id}`,
-          source: 'SC'
+        if (item.kind !== 'track') {
+          return;
+        }
+        util.convertToTimestamp(item.duration / 1000, convertedTime => {
+          formattedResults.push({
+            title: item.title,
+            author: item.user.username,
+            duration: convertedTime,
+            url: item.permalink_url,
+            id: `SC-${item.id}`,
+            source: 'SC'
+          });
+          searchResultCache.push({
+            title: item.title,
+            author: item.user.username,
+            duration: convertedTime,
+            url: item.permalink_url,
+            id: `SC-${item.id}`,
+            source: 'SC'
+          });
         });
       });
+      // Add header if not present
+      if (!document.getElementById('mainFrame').innerHTML.includes('<h2>Online Search Results</h2>')) {
+        document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>';
+      }
+      displaySearchResults(formattedResults, 'on SoundCloud');
     });
-    // Add header if not present
-    if(!document.getElementById('mainFrame').innerHTML.includes('<h2>Online Search Results</h2>'))
-    {
-      document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>'
-    }
-    displaySearchResults(formattedResults, 'on SoundCloud');
-  });
-
-  }).on("error", (err) => {
+  }).on('error', (err) => {
     console.error('SoundCloud search https request error:' + err.message);
   });
 }
 
 // TODO: Error correct duration set to 0:00, add icon for NN source
 
-function displaySearchResults(results, searchSource)
-{
+function displaySearchResults (results, searchSource) {
   // Load template for item from html file
-  fs.readFile(listItemTemplate, 'utf8' , (err, data) => {
+  fs.readFile(listItemTemplate, 'utf8', (err, data) => {
     if (err) {
-      console.error(err)
+      console.error(err);
       return;
     }
 
     // Handle no results found
-    if(results.length < 1)
-    {
+    if (results.length < 1) {
       document.getElementById('mainFrame').innerHTML += `<p>No results were found ${searchSource}.</p>`;
     }
 
     // Add each of the results to the list
     results.forEach(result => {
-
       // Fill in the variables
       let item = data;
 
       item = item
-      .split('%ID%').join(result.id)
-      .split('%TRACKNAME%').join(result.title)
-      .split('%ARTISTNAME%').join(result.author)
-      .split('%DURATION%').join(result.duration)
-      .split('%SRC%').join(result.source);
+        .split('%ID%').join(result.id)
+        .split('%TRACKNAME%').join(result.title)
+        .split('%ARTISTNAME%').join(result.author)
+        .split('%DURATION%').join(result.duration)
+        .split('%SRC%').join(result.source);
       // Alternating background color
-      if(document.getElementById('mainFrame').getElementsByClassName('listItem').length % 2 == 0)
-      {
+      if (document.getElementById('mainFrame').getElementsByClassName('listItem').length % 2 === 0) {
         item = item.split('%CLASS%').join('darkItem');
       } else {
         item = item.split('%CLASS%').join('lightItem');
@@ -1125,37 +1053,33 @@ function displaySearchResults(results, searchSource)
       // TODO: Make this more efficient.
       // Perhaps by storing all the elements in an array,
       // then move this check outside of the results.forEach
-      let readyCheck = setInterval(function(){
-        if(document.getElementById('playPause-' + result.id) && document.getElementById('local-' + result.id) && document.getElementById('library-' + result.id) && document.getElementById('iconAddRemove-' + result.id))
-        {
-          document.getElementById('playPause-' + result.id).addEventListener("click", function(){playPause(result.id)});
-          document.getElementById('local-' + result.id).addEventListener("click", function(){downloadDelete(result.id)});
-          document.getElementById('library-' + result.id).addEventListener("click", function(){addRemoveLibrary(result.id)});
-          document.getElementById('playlists-' + result.id).addEventListener("click", function(){managePlaylists(result.id, result.title)});
+      const readyCheck = setInterval(function () {
+        if (document.getElementById('playPause-' + result.id) && document.getElementById('local-' + result.id) && document.getElementById('library-' + result.id) && document.getElementById('iconAddRemove-' + result.id)) {
+          document.getElementById('playPause-' + result.id).addEventListener('click', function () { playPause(result.id); });
+          document.getElementById('local-' + result.id).addEventListener('click', function () { downloadDelete(result.id); });
+          document.getElementById('library-' + result.id).addEventListener('click', function () { addRemoveLibrary(result.id); });
+          document.getElementById('playlists-' + result.id).addEventListener('click', function () { managePlaylists(result.id, result.title); });
 
           // Change button texts and icons appropriately depending on
           // if track downloaded or present in library.
           // Defaults to downloaded and in library
 
           // Local file UI
-          if(!fs.existsSync(`${localMusicDirectory}\\${result.id}.mp3`))
-          {
+          if (!fs.existsSync(`${localMusicDirectory}\\${result.id}.mp3`)) {
             document.getElementById('iconDownloadDelete-' + result.id).src = 'icons/download.png';
             document.getElementById('iconLabelDownloadDelete-' + result.id).innerHTML = 'Download';
           }
 
           // Library UI
           findMusicById(result.id, found => {
-            if(found == null)
-            {
+            if (found === null) {
               document.getElementById('iconAddRemove-' + result.id).src = 'icons/folder.png';
               document.getElementById('iconLabelAddRemove-' + result.id).innerHTML = 'Add to library';
             }
           });
 
           // Play/pause UI
-          if(musicPlayQueue[0] == result.id && musicIsPlaying)
-          {
+          if (musicPlayQueue[0] === result.id && musicIsPlaying) {
             document.getElementById('iconPlayPause-' + result.id).src = 'icons/pause.png';
             document.getElementById('iconLabelPlayPause-' + result.id).innerHTML = 'Pause';
           }
@@ -1170,14 +1094,11 @@ function displaySearchResults(results, searchSource)
   });
 }
 
-function playPause(id)
-{
+function playPause (id) {
   console.log('playpause');
   // If play pause is for currently playing track
-  if(id == musicPlayQueue[0])
-  {
-    if(musicIsPlaying)
-    {
+  if (id === musicPlayQueue[0]) {
+    if (musicIsPlaying) {
       // Pause
       context.suspend();
       musicIsPlaying = false;
@@ -1186,9 +1107,8 @@ function playPause(id)
       document.getElementById('iconPlayerControlPlayPause').src = 'icons/play.png';
 
       // If track is in search results, update icon and label there
-      if(document.getElementById(`iconPlayPause-${id}`))
-      {
-        document.getElementById(`iconPlayPause-${id}`).src = 'icons/play.png'
+      if (document.getElementById(`iconPlayPause-${id}`)) {
+        document.getElementById(`iconPlayPause-${id}`).src = 'icons/play.png';
         document.getElementById(`iconLabelPlayPause-${id}`).innerHTML = 'Play';
       }
     } else {
@@ -1196,19 +1116,17 @@ function playPause(id)
       context.resume();
       musicIsPlaying = true;
       // Update icon
-      document.getElementById('iconPlayerControlPlayPause').src = 'icons/pause.png'
+      document.getElementById('iconPlayerControlPlayPause').src = 'icons/pause.png';
       // If track is in search results, update icon and label there
-      if(document.getElementById(`iconPlayPause-${id}`))
-      {
-        document.getElementById(`iconPlayPause-${id}`).src = 'icons/pause.png'
+      if (document.getElementById(`iconPlayPause-${id}`)) {
+        document.getElementById(`iconPlayPause-${id}`).src = 'icons/pause.png';
         document.getElementById(`iconLabelPlayPause-${id}`).innerHTML = 'Pause';
       }
     }
   } else {
     // Play was requested for something not playing right now
     // Stop playing if playing
-    if(musicIsPlaying)
-    {
+    if (musicIsPlaying) {
       context.suspend();
     }
 
@@ -1216,19 +1134,17 @@ function playPause(id)
     document.getElementById('loadingBar').style.opacity = 1;
 
     // Change UI element
-    if(document.getElementById(`iconPlayPause-${id}`))
-    {
-      document.getElementById(`iconPlayPause-${id}`).src = 'icons/play.png'
+    if (document.getElementById(`iconPlayPause-${id}`)) {
+      document.getElementById(`iconPlayPause-${id}`).src = 'icons/play.png';
       document.getElementById(`iconLabelPlayPause-${id}`).innerHTML = 'Play';
     }
 
     // If this track is in queue, remove everything before it
-    if(musicPlayQueue.includes(id))
-    {
-      musicPlayQueue.splice(0, musicPlayQueue.indexOf(id))
+    if (musicPlayQueue.includes(id)) {
+      musicPlayQueue.splice(0, musicPlayQueue.indexOf(id));
     } else {
       // Clear queue if it doesn't include this track
-      musicPlayQueue = []
+      musicPlayQueue = [];
       // Add this track to queue
       musicPlayQueue.push(id);
     }
@@ -1236,8 +1152,7 @@ function playPause(id)
   }
 }
 
-function downloadDelete(id)
-{
+function downloadDelete (id) {
   // TODO: Fix that download/delete ui text doesnt change when auto added to lib
   // This function is used to download or delete
   // a file from the local music directory.
@@ -1247,13 +1162,11 @@ function downloadDelete(id)
   document.getElementById('loadingBar').style.opacity = 1;
 
   // Check if file is currently downloaded
-  if(fs.existsSync(`${localMusicDirectory}\\${id}.mp3`))
-  {
+  if (fs.existsSync(`${localMusicDirectory}\\${id}.mp3`)) {
     // Delete
     // Show confirmation box if file is a manually added local file
-    if(id.substring(0, 2) == 'LL')
-    {
-      let res = dialog.showMessageBoxSync({
+    if (id.substring(0, 2) === 'LL') {
+      const res = dialog.showMessageBoxSync({
         buttons: ['Yes', 'No'],
         message: 'This track is a local file added to StreamFusion manually. Deleting it will be permanent, and you cannot recover it later. Are you sure you want to delete it?',
         defaultId: 1,
@@ -1261,8 +1174,7 @@ function downloadDelete(id)
       });
 
       // Cancel
-      if(res == 1)
-      {
+      if (res === 1) {
         // Turn off loading bar
         document.getElementById('loadingBar').style.opacity = 0;
         return;
@@ -1277,10 +1189,8 @@ function downloadDelete(id)
 
     // Change UI text if track is currently shown on screen
     findMusicById(id, result => {
-      if(result != null)
-      {
-        if(document.getElementById('iconDownloadDelete-' + result.id))
-        {
+      if (result !== null) {
+        if (document.getElementById('iconDownloadDelete-' + result.id)) {
           document.getElementById('iconDownloadDelete-' + result.id).src = 'icons/download.png';
           document.getElementById('iconLabelDownloadDelete-' + result.id).innerHTML = 'Download';
 
@@ -1292,12 +1202,11 @@ function downloadDelete(id)
   } else {
     // Is not downloaded, so download
     // Extract source
-    let src = id.substring(0, 2);
+    const src = id.substring(0, 2);
     // Call appropriate download function for source
-    switch(src)
-    {
+    switch (src) {
       case 'YT':
-        downloadYouTube(id, true, function(){
+        downloadYouTube(id, true, function () {
           console.log(`YouTube download for ${id} complete.`);
         });
         break;
@@ -1305,18 +1214,16 @@ function downloadDelete(id)
         // Find url first, then download
         // Search library
         findMusicById(id, res => {
-          if(res != null)
-          {
+          if (res !== null) {
             // Was found in library
-            downloadSoundCloud(id, res.url, true, function(){});
+            downloadSoundCloud(id, res.url, true, function () {});
           } else {
             // Is not in library
             // Look in searchResultCache
             searchResultCache.forEach((item) => {
-              if(item.id == id)
-              {
+              if (item.id === id) {
                 // Was found
-                downloadSoundCloud(id, item.url, false, function(){});
+                downloadSoundCloud(id, item.url, false, function () {});
               }
             });
           }
@@ -1337,12 +1244,10 @@ function downloadDelete(id)
     // Add to library if not present
     // Bypass addRemoveLibrary(), might accidentally remove instead of add
     findMusicById(id, res => {
-      if(res == null)
-      {
+      if (res === null) {
         // Look in searchResultCache to find url
         searchResultCache.forEach((item) => {
-          if(item.id == id)
-          {
+          if (item.id === id) {
             promptMusicDetails(id, item.url);
           }
         });
@@ -1350,30 +1255,26 @@ function downloadDelete(id)
     });
 
     // Change UI text if track is currently shown on screen
-    if(document.getElementById('iconDownloadDelete-' + id))
-    {
+    if (document.getElementById('iconDownloadDelete-' + id)) {
       document.getElementById('iconDownloadDelete-' + id).src = 'icons/delete.png';
       document.getElementById('iconLabelDownloadDelete-' + id).innerHTML = 'Delete local file';
     }
   }
 }
 
-function addRemoveLibrary(id)
-{
+function addRemoveLibrary (id) {
   // This function adds/removes stuff from the library
   // Does not care where was called from (code, ui, etc.)
 
   // Check if is not in the library file
-  findMusicById(id, function(result){
-    if(result == null)
-    {
+  findMusicById(id, function (result) {
+    if (result === null) {
       // Is not in the library file, so add it there.
       // But first we need to confirm with the user that the details are correct.
       console.log(`Adding to library: ${id}`);
       // Look in searchResultCache to find url
       searchResultCache.forEach((item) => {
-        if(item.id == id)
-        {
+        if (item.id === id) {
           promptMusicDetails(id, item.url);
         }
       });
@@ -1383,17 +1284,15 @@ function addRemoveLibrary(id)
       removeMusicFromLibraryFile(id);
 
       // Check if downloaded as a local file
-      if(fs.existsSync(`${localMusicDirectory}\\${id}.mp3`))
-      {
+      if (fs.existsSync(`${localMusicDirectory}\\${id}.mp3`)) {
         // Ask user if want to delete local file
-        let res = dialog.showMessageBoxSync({
-          buttons: ['Delete','No'],
+        const res = dialog.showMessageBoxSync({
+          buttons: ['Delete', 'No'],
           message: result.title + ' is downloaded as a local file, but you have removed it from your library. Do you want to delete the local file? You can still download it or add it to your library later.',
           defaultId: 1,
           title: 'Delete local file?'
         });
-        if(res == 0)
-        {
+        if (res === 0) {
           console.log(`Deleting: ${localMusicDirectory}\\${id}.mp3`);
           fs.unlinkSync(`${localMusicDirectory}\\${id}.mp3`);
         }
@@ -1402,16 +1301,14 @@ function addRemoveLibrary(id)
   });
 }
 
-function downloadYouTube(id, local, callback)
-{
-  if(local)
-  {
+function downloadYouTube (id, local, callback) {
+  if (local) {
     console.log(`Downloading from YouTube. Origin: http://www.youtube.com/watch?v=${id.substring(3)} Destination: ${localMusicDirectory}\\${id}.mp3`);
 
-    let stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
-    .pipe(fs.createWriteStream(`${localMusicDirectory}\\${id}.mp3`));
+    const stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
+      .pipe(fs.createWriteStream(`${localMusicDirectory}\\${id}.mp3`));
 
-    stream.on('finish', function(){
+    stream.on('finish', function () {
       callback();
       // Turn off loading bar
       document.getElementById('loadingBar').style.opacity = 0;
@@ -1419,10 +1316,10 @@ function downloadYouTube(id, local, callback)
   } else {
     console.log(`Downloading from YouTube. Origin: http://www.youtube.com/watch?v=${id.substring(3)} Destination: ${streamingDirectory}\\${id}.mp3`);
 
-    let stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
-    .pipe(fs.createWriteStream(`${streamingDirectory}\\${id}.mp3`));
+    const stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
+      .pipe(fs.createWriteStream(`${streamingDirectory}\\${id}.mp3`));
 
-    stream.on('finish', function(){
+    stream.on('finish', function () {
       callback();
       // Turn off loading bar
       document.getElementById('loadingBar').style.opacity = 0;
@@ -1430,56 +1327,51 @@ function downloadYouTube(id, local, callback)
   }
 }
 
-function downloadSoundCloud(id, url, local, callback)
-{
-  console.log(`Downloading from SoundCloud: ${id}, url: ${url}`)
+function downloadSoundCloud (id, url, local, callback) {
+  console.log(`Downloading from SoundCloud: ${id}, url: ${url}`);
   // Downloads something from soundcloud
   soundCloud.getSongInfo(url)
     .then(async song => {
-        const stream = await song.downloadProgressive();
-        let writer;
-        if(local)
-        {
-          writer = stream.pipe(fs.createWriteStream(`${localMusicDirectory}\\${id}.mp3`));
-        } else {
-          writer = stream.pipe(fs.createWriteStream(`${streamingDirectory}\\${id}.mp3`));
-        }
-        writer.on("finish", () => {
-          console.log(`SoundCloud download finished for ${id}`);
-          // Turn off loading bar
-          document.getElementById('loadingBar').style.opacity = 0;
-          callback();
-        });
+      const stream = await song.downloadProgressive();
+      let writer;
+      if (local) {
+        writer = stream.pipe(fs.createWriteStream(`${localMusicDirectory}\\${id}.mp3`));
+      } else {
+        writer = stream.pipe(fs.createWriteStream(`${streamingDirectory}\\${id}.mp3`));
+      }
+      writer.on('finish', () => {
+        console.log(`SoundCloud download finished for ${id}`);
+        // Turn off loading bar
+        document.getElementById('loadingBar').style.opacity = 0;
+        callback();
+      });
     })
     .catch(console.error);
 }
 
-async function promptMusicDetails(id, url)
-{
+async function promptMusicDetails (id, url) {
   // Show details box with details
   // Opacity is to allow transition, display is to actually hide
-  document.getElementById('detailsModalContainer').style.display = "block";
-  setTimeout(function(){document.getElementById('detailsModalContainer').style.opacity = 1;}, 100);
+  document.getElementById('detailsModalContainer').style.display = 'block';
+  setTimeout(function () { document.getElementById('detailsModalContainer').style.opacity = 1; }, 100);
 
   let duration = '0:00';
   let source = 'NN';
-  try
-  {
+  try {
     searchResultCache.forEach(item => {
-      if(item.id == id)
-      {
+      if (item.id === id) {
         document.getElementById('detailsTitle').value = item.title;
         document.getElementById('detailsArtist').value = item.author;
         duration = item.duration;
         source = item.source;
       }
     });
-  } catch(err) {
+  } catch (err) {
     document.getElementById('detailsTitle').value = 'Unknown';
     document.getElementById('detailsArtist').value = 'Unknown';
   }
   // Set confirm button event listener
-  document.getElementById('confirmDetailsButton').addEventListener('click', function(){
+  document.getElementById('confirmDetailsButton').addEventListener('click', function () {
     // Call add function
     addMusicToLibraryFile({
       id: id,
@@ -1490,46 +1382,41 @@ async function promptMusicDetails(id, url)
       url: url
     });
     // Remove event listener with clone and replace
-    let original = document.getElementById('confirmDetailsButton'),
-    clone = original.cloneNode(true);
+    const original = document.getElementById('confirmDetailsButton');
+    const clone = original.cloneNode(true);
     original.parentNode.replaceChild(clone, original);
 
     // Hide the modal
     // Opacity is to allow transition, display is to actually hide
     document.getElementById('detailsModalContainer').style.opacity = 0;
-    setTimeout(function(){document.getElementById('detailsModalContainer').style.display = "none";}, 500);
+    setTimeout(function () { document.getElementById('detailsModalContainer').style.display = 'none'; }, 500);
 
     // If source is local file, reload library
-    if(source == 'LL')
-    {
+    if (source === 'LL') {
       // Timeout to make sure the thing gets added to library
       // before updating UI
       // maybe fix this, whatever
       // async code is fun
       setTimeout(() => {
-
         searchLibrary('');
       }, 1000);
     }
   });
 }
 
-function addMusicToLibraryFile(music)
-{
+function addMusicToLibraryFile (music) {
   // Try to prevent any data being overwritten
-  let retryInterval = setInterval(function(){
-    if(!isUsingLibraryFile)
-    {
+  const retryInterval = setInterval(function () {
+    if (!isUsingLibraryFile) {
       // Set this to true while modifying data, even if just in memory
       isUsingLibraryFile = true;
       // Modify the data
       libraryFileData.music['track-' + music.id] = music;
       console.log(`Added track-${music.id} to library file.`);
 
-      writeLibraryFile(function(){
+      writeLibraryFile(function () {
         // Change UI text if track is currently shown on screen
-        if(document.getElementById('iconAddRemove-' + music.id))
-        {
+        if (document.getElementById('iconAddRemove-' + music.id)) {
           document.getElementById('iconAddRemove-' + music.id).src = 'icons/cross.png';
           document.getElementById('iconLabelAddRemove-' + music.id).innerHTML = 'Remove from library';
         }
@@ -1539,8 +1426,7 @@ function addMusicToLibraryFile(music)
   }, 50);
 }
 
-function removeMusicFromLibraryFile(id)
-{
+function removeMusicFromLibraryFile (id) {
   // Removes a track with provided id from the library file
   // Read library file and then delete appropriate data
 
@@ -1548,21 +1434,18 @@ function removeMusicFromLibraryFile(id)
 
   // If present in any playlists, remove from those
   Object.entries(libraryFileData.playlists).forEach(([key, value]) => {
-    if(value['tracks'].includes(id))
-    {
-      value['tracks'].splice(value['tracks'].indexOf(id), 1);
+    if (value.tracks.includes(id)) {
+      value.tracks.splice(value.tracks.indexOf(id), 1);
     }
   });
 
-  writeLibraryFile(function(){
+  writeLibraryFile(function () {
     // Show search results again to properly remove item from UI
     searchLibrary('');
   });
-
 }
 
-function writeLibraryFile(callback)
-{
+function writeLibraryFile (callback) {
   // When this function is called,
   // isUsingLibraryFile should already be set to true by whatever called this.
   // That is, of course, after checking that it was false.
@@ -1573,71 +1456,64 @@ function writeLibraryFile(callback)
   // Writes libraryFileData to libraryFilePath
   fs.writeFile(libraryFilePath, JSON.stringify(libraryFileData), 'utf8', function (err) {
     if (err) {
-        console.error('Unable to write library file JSON!');
-        isUsingLibraryFile = false;
-        return console.error(err);
+      console.error('Unable to write library file JSON!');
+      isUsingLibraryFile = false;
+      return console.error(err);
     }
     console.log('Library file data written to disk.');
   });
   isUsingLibraryFile = false;
   callback();
-
 }
 
-function findMusicById(id, callback)
-{
+function findMusicById (id, callback) {
   // Find music in library
   // Input is id
   // Returns object if found in library
   // Null if not found
-  if(libraryFileData.music[`track-${id}`] == undefined)
-  {
+  if (libraryFileData.music[`track-${id}`] === undefined) {
     callback(null);
   } else {
     callback(libraryFileData.music[`track-${id}`]);
   }
-
 }
 
-function readLibraryFile(callback)
-{
+function readLibraryFile (callback) {
   // Reads library file, then calls callback
-  let retryInterval = setInterval(function(){
-    if(!isUsingLibraryFile)
-    {
+  const retryInterval = setInterval(function () {
+    if (!isUsingLibraryFile) {
       clearInterval(retryInterval);
       isUsingLibraryFile = true;
       console.log(`Reading library file (${libraryFilePath})`);
 
       fs.readFile(libraryFilePath, (err, data) => {
-          if (err) throw err;
-          // Try to parse, if fails, read again
-          try {
-            libraryFileData = JSON.parse(data);
-          } catch(err2) {
-            isUsingLibraryFile = false;
-            setTimeout(() => {
-              readLibraryFile(function(){callback()});
-            }, 100);
-          }
+        if (err) throw err;
+        // Try to parse, if fails, read again
+        try {
+          libraryFileData = JSON.parse(data);
+        } catch (err2) {
           isUsingLibraryFile = false;
-          callback();
+          setTimeout(() => {
+            readLibraryFile(function () { callback(); });
+          }, 100);
+        }
+        isUsingLibraryFile = false;
+        callback();
       });
     }
   }, 50);
 }
 
-function createLibraryFile(callback)
-{
+function createLibraryFile (callback) {
   // Create a library file
-  let jsonTemplate = {
+  const jsonTemplate = {
     music: {},
     playlists: {}
-  }
+  };
   isUsingLibraryFile = true;
   fs.writeFile(libraryFilePath, JSON.stringify(jsonTemplate), 'utf8', function (err) {
     if (err) {
-        console.error(err);
+      console.error(err);
     }
 
     console.log(`Library JSON file created at ${libraryFilePath}`);
@@ -1646,8 +1522,7 @@ function createLibraryFile(callback)
   callback();
 }
 
-function playMusic(id, _timestamp)
-{
+function playMusic (id, _timestamp) {
   // This funcion plays music
   console.log(`Playing ${id} from ${_timestamp}`);
   // Do this to make timestamp available to the progress bar updater
@@ -1662,15 +1537,13 @@ function playMusic(id, _timestamp)
 
   // Determine if need to play from streaming dir or local music dir
   let isInStreamingDir = true;
-  if(fs.existsSync(`${localMusicDirectory}\\${id}.mp3`))
-  {
+  if (fs.existsSync(`${localMusicDirectory}\\${id}.mp3`)) {
     isInStreamingDir = false;
   }
 
   // Get file name from the id
   let musicPlayingFilename;
-  if(isInStreamingDir)
-  {
+  if (isInStreamingDir) {
     musicPlayingFilename = streamingDirectory + '\\' + id + '.mp3';
   } else {
     musicPlayingFilename = localMusicDirectory + '\\' + id + '.mp3';
@@ -1678,39 +1551,32 @@ function playMusic(id, _timestamp)
 
   // Download to streaming dir if doesn't exist
   // Download to streamingDirectory, then call function again
-  if(isInStreamingDir && !fs.existsSync(musicPlayingFilename))
-  {
+  if (isInStreamingDir && !fs.existsSync(musicPlayingFilename)) {
     console.log(`Downloading to streaming dir: ${id}`);
     // Determine source
-    switch(id.substring(0, 2))
-    {
+    switch (id.substring(0, 2)) {
       case 'YT':
-        downloadYouTube(id, false, function(){
+        downloadYouTube(id, false, function () {
           playMusic(id, _timestamp);
-          return;
         });
         break;
       case 'SC':
         // Find url first, then download
         // Search library
         findMusicById(id, res => {
-          if(res != null)
-          {
+          if (res !== null) {
             // Was found in library
-            downloadSoundCloud(id, res.url, false, function(){
+            downloadSoundCloud(id, res.url, false, function () {
               playMusic(id, _timestamp);
-              return;
             });
           } else {
             // Is not in library
             // Look in searchResultCache
             searchResultCache.forEach((item) => {
-              if(item.id == id)
-              {
+              if (item.id === id) {
                 // Was found
-                downloadSoundCloud(id, item.url, false, function(){
+                downloadSoundCloud(id, item.url, false, function () {
                   playMusic(id, _timestamp);
-                  return;
                 });
               }
             });
@@ -1718,18 +1584,18 @@ function playMusic(id, _timestamp)
         });
 
         break;
-        case 'LL':
-          // The track is a manually added local file,
-          // but not present in the local music directory.
-          // Probably deleted.
-          dialog.showMessageBoxSync({
-            buttons: ['OK'],
-            message: 'This manually added local file could not be found. It has probably been deleted.',
-            defaultId: 0,
-            title: 'File not found'
-          });
-          // Turn off loading bar
-          document.getElementById('loadingBar').style.opacity = 0;
+      case 'LL':
+        // The track is a manually added local file,
+        // but not present in the local music directory.
+        // Probably deleted.
+        dialog.showMessageBoxSync({
+          buttons: ['OK'],
+          message: 'This manually added local file could not be found. It has probably been deleted.',
+          defaultId: 0,
+          title: 'File not found'
+        });
+        // Turn off loading bar
+        document.getElementById('loadingBar').style.opacity = 0;
         break;
       default:
         console.error(`Unable to parse source: ${id}`);
@@ -1740,16 +1606,14 @@ function playMusic(id, _timestamp)
   }
 
   // If file doesn't exist, return
-  if(!fs.existsSync(musicPlayingFilename))
-  {
-    console.error(`Tried playing a file that doesn't exist!`);
+  if (!fs.existsSync(musicPlayingFilename)) {
+    console.error('Tried playing a file that doesn\'t exist!');
     return;
   }
 
   // Add to play history, but only if timestamp is 0,
   // (to prevent same track being added when skipping to some timestamp)
-  if(_timestamp == 0)
-  {
+  if (_timestamp === 0) {
     addToPlayHistory(id);
   }
 
@@ -1757,29 +1621,27 @@ function playMusic(id, _timestamp)
   getAudioDurationInSeconds(musicPlayingFilename).then((_duration) => {
     duration = _duration;
     // Get music object
-    findMusicById(id, function(music){
+    findMusicById(id, function (music) {
       // If null returned, search in searchResultCache instead of library
-      if(music == null)
-      {
+      if (music === null) {
         searchResultCache.forEach(item => {
-          if(item.id == id)
-          {
+          if (item.id === id) {
             music = item;
           }
         });
       }
       // Set UI text
       document.getElementById('playerTrackTitle').innerHTML = music.title;
-    	document.getElementById('playerTrackArtist').innerHTML = music.author;
+      document.getElementById('playerTrackArtist').innerHTML = music.author;
       document.getElementById('totalDurationlabel').innerHTML = music.duration;
 
       // Get file data via XMLHttpRequest
-      request.open("GET", parser.parseFromString(musicPlayingFilename, 'text/html').body.textContent, true);
-      request.responseType = "arraybuffer";
-    	request.encoding = null;
-      request.onload = function(){
+      request.open('GET', parser.parseFromString(musicPlayingFilename, 'text/html').body.textContent, true);
+      request.responseType = 'arraybuffer';
+      request.encoding = null;
+      request.onload = function () {
         // Decode into audio data
-        context.decodeAudioData(request.response, function(buffer){
+        context.decodeAudioData(request.response, function (buffer) {
           // Unfreeze progress bar
           freezeProgressBar = false;
           // Set time reference
@@ -1822,11 +1684,9 @@ function playMusic(id, _timestamp)
             item.src = 'icons/play.png';
           });
 
-
           // If track is in search results, update icon and label there
-          if(document.getElementById(`iconPlayPause-${id}`))
-          {
-            document.getElementById(`iconPlayPause-${id}`).src = 'icons/pause.png'
+          if (document.getElementById(`iconPlayPause-${id}`)) {
+            document.getElementById(`iconPlayPause-${id}`).src = 'icons/pause.png';
             document.getElementById(`iconLabelPlayPause-${id}`).innerHTML = 'Pause';
           }
 
@@ -1837,27 +1697,24 @@ function playMusic(id, _timestamp)
           // is over the track duration.
           //
           // Clear previous interval and set new
-          try {clearInterval(awaitTrackEnd);} catch(err){}
-    		  awaitTrackEnd = setInterval(function(){onTrackPlaybackEnd()}, 1000);
+          try { clearInterval(awaitTrackEnd); } catch (err) {}
+          awaitTrackEnd = setInterval(function () { onTrackPlaybackEnd(); }, 1000);
         });
-      }
+      };
       // Sends the XMLHttpRequest
       request.send();
     });
   });
 }
 
-function onTrackPlaybackEnd()
-{
-  if((context.currentTime - contextTimeReference + timestamp) > duration)
-  {
+function onTrackPlaybackEnd () {
+  if ((context.currentTime - contextTimeReference + timestamp) > duration) {
     // Clear the interval to stop infinite loop if fails to play next
     clearInterval(awaitTrackEnd);
     // If loop is on, call this function again with timestamp 0
     // Else call playNext
     context.suspend();
-    if(loop)
-    {
+    if (loop) {
       playMusic(musicPlayQueue[0], 0);
     } else {
       playNext();
@@ -1865,8 +1722,7 @@ function onTrackPlaybackEnd()
   }
 }
 
-function playNext()
-{
+function playNext () {
   // This function plays the next track in the queue
 
   // Oreder of operations:
@@ -1877,14 +1733,12 @@ function playNext()
   // Turn on loading bar
   document.getElementById('loadingBar').style.opacity = 1;
   console.log('Playing next...');
-  if(musicPlayQueue.length > 1)
-  {
+  if (musicPlayQueue.length > 1) {
     musicPlayQueue.shift();
 
     // If shuffle, play random track
-    if(shuffle)
-    {
-      let random = Math.floor(Math.random() * musicPlayQueue.length);
+    if (shuffle) {
+      const random = Math.floor(Math.random() * musicPlayQueue.length);
       playMusic(musicPlayQueue[random], 0);
 
       // Remove selected track from queue
@@ -1895,11 +1749,10 @@ function playNext()
     }
   } else {
     // If shuffle enabled, select random from library
-    if(shuffle)
-    {
-      let tracks = [];
+    if (shuffle) {
+      const tracks = [];
       Object.entries(libraryFileData.music).forEach(([key, value]) => {
-        tracks.push(value['id']);
+        tracks.push(value.id);
       });
 
       musicPlayQueue[0] = tracks[Math.floor(Math.random() * tracks.length)];
@@ -1912,23 +1765,20 @@ function playNext()
       let startedPlayingMusic = false;
       Object.entries(libraryFileData.music).forEach(([key, value]) => {
         // If last entry was current track
-        if(foundCurrentTrack && !startedPlayingMusic)
-        {
-          musicPlayQueue[0] = value['id'];
-          playMusic(value['id'], 0);
+        if (foundCurrentTrack && !startedPlayingMusic) {
+          musicPlayQueue[0] = value.id;
+          playMusic(value.id, 0);
           startedPlayingMusic = true;
-        } else if(value['id'] == musicPlayQueue[0])
-        {
+        } else if (value.id === musicPlayQueue[0]) {
           foundCurrentTrack = true;
         }
       });
 
       // Looks like nothing was played,
       // just play the first thing in library
-      if(!startedPlayingMusic)
-      {
-        let firstKey = Object.keys(libraryFileData.music)[0];
-        let firstTrack = libraryFileData.music[firstKey];
+      if (!startedPlayingMusic) {
+        const firstKey = Object.keys(libraryFileData.music)[0];
+        const firstTrack = libraryFileData.music[firstKey];
         musicPlayQueue[0] = firstTrack.id;
         playMusic(firstTrack.id, 0);
       }
@@ -1936,12 +1786,10 @@ function playNext()
   }
 }
 
-function playPrevious()
-{
+function playPrevious () {
   // Return if play history is empty
   // (So a length of less than 2, since the current track is also included)
-  if(lastPlayedMusic.length < 2)
-  {
+  if (lastPlayedMusic.length < 2) {
     return;
   }
   // Turn on loading bar
@@ -1955,56 +1803,50 @@ function playPrevious()
   playMusic(lastPlayedMusic[0], 0);
 }
 
-function addToPlayHistory(id)
-{
+function addToPlayHistory (id) {
   console.log(`Adding to history: ${id}`);
   // Do not add same track multiple times
-  if(!lastPlayedMusic.includes(id))
-  {
+  if (!lastPlayedMusic.includes(id)) {
     lastPlayedMusic.unshift(id);
   }
 
   // Record to history file
-  let readHistory = JSON.parse(fs.readFileSync(historyFilePath));
+  const readHistory = JSON.parse(fs.readFileSync(historyFilePath));
   // Add 1 to play count in current month
-  let d = new Date();
+  const d = new Date();
   // Check that entry for current month exists
-  if(readHistory[`${d.getFullYear()}.${d.getMonth()}`] == undefined)
-  {
+  if (readHistory[`${d.getFullYear()}.${d.getMonth()}`] === undefined) {
     readHistory[`${d.getFullYear()}.${d.getMonth()}`] = {};
   }
 
-  if(readHistory[`${d.getFullYear()}.${d.getMonth()}`][id] == undefined)
-  {
+  if (readHistory[`${d.getFullYear()}.${d.getMonth()}`][id] === undefined) {
     readHistory[`${d.getFullYear()}.${d.getMonth()}`][id] = 1;
   } else {
     readHistory[`${d.getFullYear()}.${d.getMonth()}`][id] += 1;
   }
   fs.writeFile(historyFilePath, JSON.stringify(readHistory), 'utf8', function (err) {
     if (err) {
-        console.error('Unable to write history file JSON!');
-        return console.error(err);
+      console.error('Unable to write history file JSON!');
+      return console.error(err);
     }
     console.log('History file data written to disk.');
   });
 }
 
-function showPlaylistCreateModal()
-{
+function showPlaylistCreateModal () {
   // Set default value in name input to be "New playlist"
   document.getElementById('playlistTitle').value = 'New playlist';
 
   // Show modal for new playlist creation
   // Opacity is to allow transition, display is to actually hide
-  document.getElementById('newPlaylistModalContainer').style.display = "block";
-  setTimeout(function(){document.getElementById('newPlaylistModalContainer').style.opacity = 1;});
+  document.getElementById('newPlaylistModalContainer').style.display = 'block';
+  setTimeout(function () { document.getElementById('newPlaylistModalContainer').style.opacity = 1; });
 
   // Handle confirm button
-  document.getElementById('confirmNewPlaylistButton').addEventListener('click', function(){
+  document.getElementById('confirmNewPlaylistButton').addEventListener('click', function () {
     // Check for empty name
-    if(document.getElementById('playlistTitle').value == '' || document.getElementById('playlistTitle').value.split(' ').join('') == '')
-    {
-      let res = dialog.showMessageBoxSync({
+    if (document.getElementById('playlistTitle').value === '' || document.getElementById('playlistTitle').value.split(' ').join('') === '') {
+      dialog.showMessageBoxSync({
         buttons: ['OK'],
         message: 'Playlist name cannot be empty',
         defaultId: 0,
@@ -2017,36 +1859,34 @@ function showPlaylistCreateModal()
     createNewPlaylist(document.getElementById('playlistTitle').value);
 
     // Remove event listener with clone and replace
-    let original = document.getElementById('confirmNewPlaylistButton'),
-    clone = original.cloneNode(true);
+    const original = document.getElementById('confirmNewPlaylistButton');
+    const clone = original.cloneNode(true);
     original.parentNode.replaceChild(clone, original);
 
     // Hide the modal
     // Opacity is to allow transition, display is to actually hide
     document.getElementById('newPlaylistModalContainer').style.opacity = 0;
-    setTimeout(function(){document.getElementById('newPlaylistModalContainer').style.display = "none";}, 500);
+    setTimeout(function () { document.getElementById('newPlaylistModalContainer').style.display = 'none'; }, 500);
   });
 }
 
-function updatePlaylistSidebar()
-{
+function updatePlaylistSidebar () {
   // Updates list of playlists in the sidebar
   // Clear old elements
   document.getElementById('playlistContainer').innerHTML = '';
 
   // Load template for item from html file
-  fs.readFile(playlistItemTemplate, 'utf8' , (err, data) => {
+  fs.readFile(playlistItemTemplate, 'utf8', (err, data) => {
     if (err) {
-      console.error(err)
+      console.error(err);
       return;
     }
 
     // Show create playlist button
     document.getElementById('playlistContainer').innerHTML += '<span class="playlistSpan" id="createNewPlaylist"> <p class="inlineBlock">+ Create new playlist</p> </span>';
     // Event listener for new playlist button
-    let awaitHTMLAppend = setInterval(() => {
-      if(document.getElementById('createNewPlaylist'))
-      {
+    const awaitHTMLAppend = setInterval(() => {
+      if (document.getElementById('createNewPlaylist')) {
         clearInterval(awaitHTMLAppend);
         document.getElementById('createNewPlaylist').addEventListener('click', (event) => {
           showPlaylistCreateModal();
@@ -2057,33 +1897,31 @@ function updatePlaylistSidebar()
     // Show playlists
     Object.entries(libraryFileData.playlists).forEach(([key, value]) => {
       // Modify template with correct data
-      let elementToAppend = data
-      .split('%ID%').join(value['id'])
-      .split('%NAME%').join(value['name']);
+      const elementToAppend = data
+        .split('%ID%').join(value.id)
+        .split('%NAME%').join(value.name);
 
       // Append to HTML
       document.getElementById('playlistContainer').innerHTML += elementToAppend;
 
       // Darken color if selected playlist
-      if(selectedPlaylist == value['id'])
-      {
-        document.getElementById(`playlistSpan-${value['id']}`).style.backgroundColor = 'var(--bg-tertiary)';
+      if (selectedPlaylist === value.id) {
+        document.getElementById(`playlistSpan-${value.id}`).style.backgroundColor = 'var(--bg-tertiary)';
       }
 
       // Add event listeners to span and buttons
-      let awaitElementLoad = setInterval(() => {
-        if(document.getElementById(`playlistSpanClickableArea-${value['id']}`) && document.getElementById(`playlistButtonDelete-${value['id']}`) && document.getElementById(`playlistButtonRename-${value['id']}`))
-        {
+      const awaitElementLoad = setInterval(() => {
+        if (document.getElementById(`playlistSpanClickableArea-${value.id}`) && document.getElementById(`playlistButtonDelete-${value.id}`) && document.getElementById(`playlistButtonRename-${value.id}`)) {
           clearInterval(awaitElementLoad);
           // On click of the playlist element
-          document.getElementById(`playlistSpanClickableArea-${value['id']}`).addEventListener('click', () => {
-            selectedPlaylist = value['id'];
+          document.getElementById(`playlistSpanClickableArea-${value.id}`).addEventListener('click', () => {
+            selectedPlaylist = value.id;
             // Lighten all playlist buttons
             Array.from(document.getElementsByClassName('playlistSpan')).forEach(item => {
               item.style.backgroundColor = 'var(--bg-secondary)';
             });
             // Darken button for this playlist
-            document.getElementById(`playlistSpan-${value['id']}`).style.backgroundColor = 'var(--bg-tertiary)';
+            document.getElementById(`playlistSpan-${value.id}`).style.backgroundColor = 'var(--bg-tertiary)';
             // Search
             searchLibrary('');
             // Set everything in play queue from pos 1 forwards to be playlist
@@ -2097,31 +1935,29 @@ function updatePlaylistSidebar()
               // Queue was empty
               musicPlayQueue = value['tracks'];
             } */
-            let firstInQueue = musicPlayQueue[0];
+            const firstInQueue = musicPlayQueue[0];
             musicPlayQueue = [];
-            musicPlayQueue = value['tracks'];
+            musicPlayQueue = value.tracks;
             musicPlayQueue.unshift(firstInQueue);
           });
 
           // On click of delete button
-          document.getElementById(`playlistButtonDelete-${value['id']}`).addEventListener('click', () => {
+          document.getElementById(`playlistButtonDelete-${value.id}`).addEventListener('click', () => {
             // Ask user if wants to delete playlist
-            let res = dialog.showMessageBoxSync({
-              buttons: ['Delete','Cancel'],
-              message: `Are you sure you want to delete the playlist ${value['name']}`,
+            const res = dialog.showMessageBoxSync({
+              buttons: ['Delete', 'Cancel'],
+              message: `Are you sure you want to delete the playlist ${value.name}`,
               defaultId: 1,
               title: 'Delete playlist?'
             });
-            if(res == 0)
-            {
-              let awaitLibraryFile = setInterval(() => {
-                if(!isUsingLibraryFile)
-                {
+            if (res === 0) {
+              const awaitLibraryFile = setInterval(() => {
+                if (!isUsingLibraryFile) {
                   clearInterval(awaitLibraryFile);
                   isUsingLibraryFile = true;
-                  delete libraryFileData.playlists[value['id']];
+                  delete libraryFileData.playlists[value.id];
                   writeLibraryFile(() => {
-                    console.log(`Deleted playlist ${value['id']}`);
+                    console.log(`Deleted playlist ${value.id}`);
                     updatePlaylistSidebar();
                   });
                 }
@@ -2129,10 +1965,9 @@ function updatePlaylistSidebar()
             }
           });
 
-
           // On click of rename button
-          document.getElementById(`playlistButtonRename-${value['id']}`).addEventListener('click', () => {
-            renamePlaylist(value['id']);
+          document.getElementById(`playlistButtonRename-${value.id}`).addEventListener('click', () => {
+            renamePlaylist(value.id);
           });
 
           // TODO: this
@@ -2140,14 +1975,12 @@ function updatePlaylistSidebar()
       }, 150);
     });
   });
-
 }
 
-function renamePlaylist(id)
-{
+function renamePlaylist (id) {
   // Show rename modal
-  document.getElementById('renamePlaylistModalContainer').style.display = "block";
-  setTimeout(function(){document.getElementById('renamePlaylistModalContainer').style.opacity = 1;}, 100);
+  document.getElementById('renamePlaylistModalContainer').style.display = 'block';
+  setTimeout(function () { document.getElementById('renamePlaylistModalContainer').style.opacity = 1; }, 100);
 
   // Set default value in name box to be current name
   document.getElementById('renamePlaylistTitle').value = libraryFileData.playlists[id].name;
@@ -2155,12 +1988,11 @@ function renamePlaylist(id)
   // Handle confirm button
   document.getElementById('confirmRenamePlaylistButton').addEventListener('click', () => {
     // Get name from input box
-    let newName = document.getElementById('renamePlaylistTitle').value;
+    const newName = document.getElementById('renamePlaylistTitle').value;
 
     // Check for empty name
-    if(newName == '' || newName.split(' ').join('') == '')
-    {
-      let res = dialog.showMessageBoxSync({
+    if (newName === '' || newName.split(' ').join('') === '') {
+      dialog.showMessageBoxSync({
         buttons: ['OK'],
         message: 'Playlist name cannot be empty',
         defaultId: 0,
@@ -2171,12 +2003,11 @@ function renamePlaylist(id)
 
     // Hide rename modal
     document.getElementById('renamePlaylistModalContainer').style.opacity = 0;
-    setTimeout(function(){document.getElementById('renamePlaylistModalContainer').style.display = "none";}, 500);
+    setTimeout(function () { document.getElementById('renamePlaylistModalContainer').style.display = 'none'; }, 500);
 
     // Do the renaming
-    let awaitLibraryFile = setInterval(() => {
-      if(!isUsingLibraryFile)
-      {
+    const awaitLibraryFile = setInterval(() => {
+      if (!isUsingLibraryFile) {
         clearInterval(awaitLibraryFile);
         isUsingLibraryFile = true;
         libraryFileData.playlists[id].name = newName;
@@ -2187,19 +2018,17 @@ function renamePlaylist(id)
       }
     }, 50);
     // Remove event listener with clone and replace
-    let original = document.getElementById('confirmRenamePlaylistButton'),
-    clone = original.cloneNode(true);
+    const original = document.getElementById('confirmRenamePlaylistButton');
+    const clone = original.cloneNode(true);
     original.parentNode.replaceChild(clone, original);
   });
 }
 
-function createNewPlaylist(name)
-{
+function createNewPlaylist (name) {
   // Assign a random id for playlist
-  let playlistID = `PL-${(Math.random() + 1).toString(36).substring(7)}${(Math.random() + 1).toString(36).substring(7)}`
+  const playlistID = `PL-${(Math.random() + 1).toString(36).substring(7)}${(Math.random() + 1).toString(36).substring(7)}`;
   // Avoid duplicates
-  if(libraryFileData.playlists[playlistID] != undefined)
-  {
+  if (libraryFileData.playlists[playlistID] !== undefined) {
     createNewPlaylist(name);
     return;
   }
@@ -2211,9 +2040,8 @@ function createNewPlaylist(name)
     tracks: []
   };
   // Write to file
-  let awaitFile = setInterval(function(){
-    if(!isUsingLibraryFile)
-    {
+  const awaitFile = setInterval(function () {
+    if (!isUsingLibraryFile) {
       clearInterval(awaitFile);
       isUsingLibraryFile = true;
       writeLibraryFile(() => {
@@ -2224,16 +2052,14 @@ function createNewPlaylist(name)
   }, 100);
 }
 
-function managePlaylists(id, title)
-{
+function managePlaylists (id, title) {
   // Function called when manage playlists button is pressed
   // If not in library, return
   findMusicById(id, (res) => {
-    if(res)
-    {
+    if (res) {
       // Show playlist manager
-      document.getElementById('playlistManagerModalContainer').style.display = "block";
-      setTimeout(function(){document.getElementById('playlistManagerModalContainer').style.opacity = 1;}, 100);
+      document.getElementById('playlistManagerModalContainer').style.display = 'block';
+      setTimeout(function () { document.getElementById('playlistManagerModalContainer').style.opacity = 1; }, 100);
 
       // Set heading text
       document.getElementById('playlistManagerHeading').innerHTML = `Manage playlists for ${title}`;
@@ -2247,13 +2073,12 @@ function managePlaylists(id, title)
       // Show list of playlists
       Object.entries(libraryFileData.playlists).forEach(([key, value]) => {
         // If playlist contains track
-        if(value['tracks'].includes(id))
-        {
+        if (value.tracks.includes(id)) {
           // Does include, append appropriate HTML
-          document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" checked id="CB-${value['id']}"> ${value['name']}</li>`;
+          document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" checked id="CB-${value.id}"> ${value.name}</li>`;
         } else {
           // Does not include, append appropriate HTML
-          document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" id="CB-${value['id']}"> ${value['name']}</li>`;
+          document.getElementById('playlistManagerPlaylistList').innerHTML += `<li><input type="checkbox" class="playlistCheckbox" id="CB-${value.id}"> ${value.name}</li>`;
         }
       });
 
@@ -2262,19 +2087,16 @@ function managePlaylists(id, title)
         // For each playlist, check if checked, then add/remove track from playlist
         Array.from(document.getElementsByClassName('playlistCheckbox')).forEach(item => {
           // Check if checked
-          if(item.checked)
-          {
+          if (item.checked) {
             // Check if track is not playlist when should be
-            if(!libraryFileData.playlists[item.id.substring(3)].tracks.includes(id))
-            {
+            if (!libraryFileData.playlists[item.id.substring(3)].tracks.includes(id)) {
               // Add to playlist
               libraryFileData.playlists[item.id.substring(3)].tracks.push(id);
               console.log(`Added ${id} to playlist ${item.id.substring(3)}`);
             }
           } else {
             // Check if track is in playlist when should not be
-            if(libraryFileData.playlists[item.id.substring(3)].tracks.includes(id))
-            {
+            if (libraryFileData.playlists[item.id.substring(3)].tracks.includes(id)) {
               // Remove from playlist
               libraryFileData.playlists[item.id.substring(3)].tracks.splice(libraryFileData.playlists[item.id.substring(3)].tracks.indexOf(id), 1);
               console.log(`Removed ${id} from playlist ${item.id.substring(3)}`);
@@ -2285,7 +2107,7 @@ function managePlaylists(id, title)
         // Hide the modal
         // Opacity is to allow transition, display is to actually hide
         document.getElementById('playlistManagerModalContainer').style.opacity = 0;
-        setTimeout(function(){document.getElementById('playlistManagerModalContainer').style.display = "none";}, 500);
+        setTimeout(function () { document.getElementById('playlistManagerModalContainer').style.display = 'none'; }, 500);
 
         // Write to library file
         writeLibraryFile(() => {
@@ -2293,8 +2115,8 @@ function managePlaylists(id, title)
         });
 
         // Remove event listener with clone and replace
-        let original = document.getElementById('playlistManagerConfirmButton'),
-        clone = original.cloneNode(true);
+        const original = document.getElementById('playlistManagerConfirmButton');
+        const clone = original.cloneNode(true);
         original.parentNode.replaceChild(clone, original);
       });
     } else {
@@ -2304,77 +2126,69 @@ function managePlaylists(id, title)
         defaultId: 0,
         title: 'Manage playlists'
       });
-      return;
     }
   });
 }
 
-function importLibrary()
-{
+function importLibrary () {
   // Import library from .sfd JSON file
   // Show file select dialog
-  let p = dialog.showOpenDialogSync({
+  const p = dialog.showOpenDialogSync({
     filters: [
       { name: 'StreamFusion Data File', extensions: ['sfd'] }
     ]
   });
   // Return if nothing selected
-  if(p.length < 1)
-  {
+  if (p.length < 1) {
     return;
   }
 
-  let path = p[0];
+  const path = p[0];
   readLibraryFile(() => {
     // Import from file if anything was selected.
     // .sfd file is just a JSON file with a custom extension
     // to allow setting a file association to open them with StreamFusion.
-    if(path)
-    {
+    if (path) {
       // Turn on loading bar
       document.getElementById('loadingBar').style.opacity = 1;
 
-      let awaitLibraryFile = setInterval(() => {
-        if(!isUsingLibraryFile)
-        {
+      const awaitLibraryFile = setInterval(() => {
+        if (!isUsingLibraryFile) {
           clearInterval(awaitLibraryFile);
           isUsingLibraryFile = true;
           console.log(path);
           fs.readFile(path, (err, data) => {
-              if (err) throw err;
-              // After reading data, parse to JSON
-              let parsed = JSON.parse(data);
-              // Then for each track, add to library, if doesn't exist there
-              Object.entries(parsed.library.music).forEach(([key, value]) => {
-                if(!libraryFileData.music[key])
-                {
-                  // Skip local files
-                  if(!parsed.library.music[key].id.substring(0, 2) == 'LL')
-                  {
-                    libraryFileData.music[key] = parsed.library.music[key];
-                  }
+            if (err) throw err;
+            // After reading data, parse to JSON
+            const parsed = JSON.parse(data);
+            // Then for each track, add to library, if doesn't exist there
+            Object.entries(parsed.library.music).forEach(([key, value]) => {
+              if (!libraryFileData.music[key]) {
+                // Skip local files
+                if (!parsed.library.music[key].id.substring(0, 2) === 'LL') {
+                  libraryFileData.music[key] = parsed.library.music[key];
                 }
+              }
+            });
+
+            // Then for each playlist, add to library, if not there
+            Object.entries(parsed.library.playlists).forEach(([key, value]) => {
+              if (!libraryFileData.playlists[key]) {
+                libraryFileData.playlists[key] = parsed.library.playlists[key];
+              }
+            });
+
+            // Set timeout to make sure that importing is done
+            setTimeout(() => {
+              writeLibraryFile(() => {
+                // Turn off loading bar
+                document.getElementById('loadingBar').style.opacity = 0;
+                console.log(`Imported library from ${path}`);
+
+                // Search to show updated library
+                searchLibrary('');
               });
-
-              // Then for each playlist, add to library, if not there
-              Object.entries(parsed.library.playlists).forEach(([key, value]) => {
-                if(!libraryFileData.playlists[key])
-                {
-                  libraryFileData.playlists[key] = parsed.library.playlists[key];
-                }
-              });
-
-              // Set timeout to make sure that importing is done
-              setTimeout(() => {
-                writeLibraryFile(() => {
-                  // Turn off loading bar
-                  document.getElementById('loadingBar').style.opacity = 0;
-                  console.log(`Imported library from ${path}`);
-
-                  // Search to show updated library
-                  searchLibrary('');
-                });
-              }, 3000);
+            }, 3000);
           });
         }
       }, 50);
@@ -2382,10 +2196,9 @@ function importLibrary()
   });
 }
 
-function exportLibrary()
-{
+function exportLibrary () {
   // Export library to .sfd JSON file
-  let path = dialog.showSaveDialogSync({
+  const path = dialog.showSaveDialogSync({
     filters: [
       { name: 'StreamFusion Data File', extensions: ['sfd'] }
     ]
@@ -2393,27 +2206,25 @@ function exportLibrary()
 
   readLibraryFile(() => {
     // If a path was selected
-    if(path)
-    {
-      let awaitLibraryFile = setInterval(() => {
-        if(!isUsingLibraryFile)
-        {
+    if (path) {
+      const awaitLibraryFile = setInterval(() => {
+        if (!isUsingLibraryFile) {
           clearInterval(awaitLibraryFile);
           isUsingLibraryFile = true;
 
           // Add everything to a JSON object, then write to file
-          let exportData = {
+          const exportData = {
             library: {
               music: libraryFileData.music,
               playlists: libraryFileData.playlists
             }
-          }
+          };
 
           fs.writeFile(path, JSON.stringify(exportData), 'utf8', function (err) {
             if (err) {
-                console.error('Unable to export library!');
-                isUsingLibraryFile = false;
-                return console.error(err);
+              console.error('Unable to export library!');
+              isUsingLibraryFile = false;
+              return console.error(err);
             }
             console.log(`Exported library to ${path}`);
             shell.showItemInFolder(path);
@@ -2425,25 +2236,23 @@ function exportLibrary()
   });
 }
 
-function importFile()
-{
+function importFile () {
   // Imports an audio file
   // Ask for file
-  let p = dialog.showOpenDialogSync({
+  const p = dialog.showOpenDialogSync({
     filters: [
       { name: 'mp3 audio file', extensions: ['mp3'] }
     ]
   });
   // Return if nothing selected
-  if(p.length < 1)
-  {
+  if (p.length < 1) {
     return;
   }
-  let path = p[0];
+  const path = p[0];
 
-  let d = new Date();
+  const d = new Date();
   // Assign a random id for track
-  let randomID = `LL-${d.getFullYear()}${d.getMonth()}${d.getDate()}${(Math.random() + 1).toString(36).substring(7)}`
+  const randomID = `LL-${d.getFullYear()}${d.getMonth()}${d.getDate()}${(Math.random() + 1).toString(36).substring(7)}`;
 
   // Copy file to music directory
   fs.copyFile(path, `${localMusicDirectory}\\${randomID}.mp3`, (err) => {
@@ -2465,24 +2274,18 @@ function importFile()
       });
     });
   });
-
-
 }
 
-function quit()
-{
+function quit () {
   app.quit();
 }
 
-function minimize()
-{
+function minimize () {
   BrowserWindow.getFocusedWindow().minimize();
 }
 
-function maximize()
-{
-  if(BrowserWindow.getFocusedWindow().isMaximized())
-  {
+function maximize () {
+  if (BrowserWindow.getFocusedWindow().isMaximized()) {
     BrowserWindow.getFocusedWindow().unmaximize();
     document.getElementById('windowControlIcon-maximize').src = 'icons/maximize.png';
   } else {
