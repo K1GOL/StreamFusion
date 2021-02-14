@@ -1,6 +1,7 @@
 # StreamFusion
 <img src="https://github.com/K1GOL/StreamFusion/blob/main/resources/icons/128x128.png" width="100" height="100">
-[![js-semistandard-style](https://raw.githubusercontent.com/standard/semistandard/master/badge.svg)](https://github.com/standard/semistandard)
+
+[<img src="https://raw.githubusercontent.com/standard/semistandard/master/badge.svg" width="100" height="100">](https://github.com/standard/semistandard)
 
 StreamFusion is a 100% free open-source music player and manager incorporating SoundCloud and YouTube music streaming in one single program. Get started with using StreamFusion right now by downloading the installer linked below.
 
