@@ -48,7 +48,8 @@ module.exports = {
       settings: {
         colorScheme: 'default_defaultColorScheme',
         defaultSearch: 'YT',
-        volume: 50
+        volume: 50,
+        overlayEnabled: true
       },
       meta: {
         installDir: process.cwd(),

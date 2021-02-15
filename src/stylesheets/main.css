@@ -618,6 +618,47 @@ body {
   margin: 0;
 }
 
+.overlayContainer {
+  opacity: 0;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  background-color: var(--bg-primary);
+  transition-duration: 1s;
+  box-shadow: 5px 5px 8px var(--bg-tertiary);
+  overflow: none;
+}
+
+.overlayLeftHalf {
+  display: inline-block;
+  height: 100%;
+  width: 70%;
+  float: left;
+}
+
+.overlayRightHalf {
+  display: inline-block;
+  height: 100%;
+  width: 30%;
+  float: right;
+}
+
+.overlayProgressBarContainer {
+  width: 80%;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--bg-light);
+  margin: 2px;
+  padding: 0;
+}
+
+.overlayProgressBar {
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--loadingBar);
+  margin: 0;
+  padding: 0;
+}
+
 #currentTimeLabel {
   width: 35px;
 }

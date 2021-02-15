@@ -11,9 +11,10 @@ const scraper = require('soundcloud-scraper');
 const https = require('https');
 const upgrade = require('./upgrade.js');
 const util = require('./util.js');
+const overlay = require('./overlay.js');
 
 const { dialog, app, BrowserWindow } = require('electron').remote;
-const { shell } = require('electron');
+const { shell, ipcRenderer } = require('electron');
 
 const softwareVersion = app.getVersion();
 
@@ -182,11 +183,25 @@ function startup () {
           upgrade.upgrade(lastVer, softwareVersion, {
             customColorFile: customColorSchemeFilePath
           });
-          // Wait for upgrade to finish
-          setTimeout(() => { loadSettings(); }, 1000);
+          // Fixed timeout to make sure upgrade finishes
+          setTimeout(() => {
+            // Await settings menu load
+            const awaitSettingsMenuLoad = setInterval(() => {
+              if (document.getElementById('settingsModalContainer') && document.getElementById('settingsSearchPlatformSelect') && document.getElementById('settingsColorScheme')) {
+                clearInterval(awaitSettingsMenuLoad);
+                loadSettings();
+              }
+            }, 10);
+          }, 1000);
         });
       } else {
-        loadSettings();
+        // Await settings menu load, then load settings
+        const awaitSettingsMenuLoad = setInterval(() => {
+          if (document.getElementById('settingsModalContainer') && document.getElementById('settingsSearchPlatformSelect') && document.getElementById('settingsColorScheme')) {
+            clearInterval(awaitSettingsMenuLoad);
+            loadSettings();
+          }
+        }, 10);
       }
     });
   }
@@ -194,12 +209,16 @@ function startup () {
   libraryErrorCorrection();
 
   // Add event listeners for media keys
-  document.addEventListener('keyup', ({ key }) => {
-    if (key === 'MediaPlayPause') {
+  ipcRenderer.on('mediaControlEvent', (event, message) => {
+    if (message === 'MediaPlayPause') {
       playPause(musicPlayQueue[0]);
-    } else if (key === 'MediaTrackNext') {
+      // Show overlay if enabled and window not focused
+      if (settings.settings.overlayEnabled && !BrowserWindow.getFocusedWindow()) {
+        overlay.showOverlay();
+      }
+    } else if (message === 'MediaNextTrack') {
       playNext();
-    } else if (key === 'MediaTrackPrevious') {
+    } else if (message === 'MediaPreviousTrack') {
       playPrevious();
     }
   });
@@ -347,7 +366,6 @@ function startup () {
       document.getElementById('agreeToS').addEventListener('click', () => {
         settings.meta.hasAcceptedToS = true;
         writeSettingsFile(() => {
-          console.log('Accepted ToS.');
           // Hide modal window
           document.getElementById('legalModalContainer').style.opacity = 0;
           setTimeout(function () { document.getElementById('legalModalContainer').style.display = 'none'; }, 300);
@@ -362,7 +380,6 @@ function startup () {
       document.getElementById('rejectToS').addEventListener('click', () => {
         settings.meta.hasAcceptedToS = false;
         writeSettingsFile(() => {
-          console.log('Rejected ToS.');
           dialog.showMessageBoxSync({
             buttons: ['OK'],
             message: 'You have not accepted the provided terms and conditions. You must accept them to continue using StreamFusion. The program will now exit. When you start StreamFusion, you will be asked to accept the terms and conditions.',
@@ -394,11 +411,16 @@ function startup () {
   setInterval(function () {
     if (musicIsPlaying && !freezeProgressBar) {
       document.getElementById('trackProgressSlider').value = (((context.currentTime - contextTimeReference + timestamp) / duration) * 100).toFixed(3);
+      // Also set overlay progress bar
+      overlay.setProgress(Math.round(((context.currentTime - contextTimeReference + timestamp) / duration) * 100));
     }
     // Also set the time label if possible
     if (contextTimeReference && !freezeProgressBar) {
       util.convertToTimestamp(context.currentTime - contextTimeReference + timestamp, function (time) {
         document.getElementById('currentTimeLabel').innerHTML = time;
+
+        // Set overlay time details
+        overlay.setTimestamp(time);
       });
     }
   }, 200);
@@ -546,13 +568,15 @@ function startup () {
     }
   }, 50);
 
+  // Create overlay
+  overlay.createOverlay();
+
   // -----
   // End of start-up procedures
   // -----
 }
 
 function readSettingsFile (callback) {
-  console.log(`Reading settings file from ${settingsFilePath}`);
   // Read settings file
   try {
     // Read file contents into JSON
@@ -584,7 +608,6 @@ function writeSettingsFile (callback) {
       // Try again
       writeSettingsFile(() => { callback(); });
     }
-    console.log('Settings file data written to disk.');
     callback();
   });
 }
@@ -629,8 +652,6 @@ function createCustomColorFile () {
     if (err) {
       console.error(err);
     }
-
-    console.log(`Custom color scheme JSON file created at ${customColorSchemeFilePath}`);
   });
 }
 
@@ -659,8 +680,7 @@ function applySettings () {
 
   settings.settings.colorScheme = document.getElementById('settingsColorScheme').value;
   settings.settings.defaultSearch = document.getElementById('settingsSearchPlatformSelect').value;
-
-  console.log('All settings applied');
+  settings.settings.overlayEnabled = document.getElementById('overlayEnabled').checked;
   writeSettingsFile(() => {
     loadSettings();
   });
@@ -672,6 +692,18 @@ function loadSettings () {
   // Default search setting
   document.getElementById('searchPlatformSelect').value = settings.settings.defaultSearch;
   document.getElementById('settingsSearchPlatformSelect').value = settings.settings.defaultSearch;
+
+  // Overlay
+  // Handle if undefined
+  if (settings.settings.overlayEnabled === undefined) {
+    settings.settings.overlayEnabled = true;
+  }
+
+  if (settings.settings.overlayEnabled) {
+    document.getElementById('overlayEnabled').checked = true;
+  } else {
+    document.getElementById('overlayEnabled').checked = false;
+  }
 
   // Color scheme
   // Fix undefined color scheme
@@ -752,7 +784,6 @@ function libraryErrorCorrection () {
             value.source = 'SC';
             break;
           default:
-            console.log(`No source error correction could be made on ${value.id}`);
         }
       }
       // Duration error correction
@@ -831,7 +862,7 @@ function searchLibrary (searchQuery) {
     document.getElementById('mainFrame').innerHTML = '';
     // Add heading and show results
     document.getElementById('mainFrame').innerHTML += '<h2>Library Search Results</h2>';
-    displaySearchResults(results, 'in library');
+    displaySearchResults(results, 'Library');
   } else {
     // Search mode for when a playlist is selected.
     // Instead of listing results in same order as in the library,
@@ -869,7 +900,7 @@ function searchLibrary (searchQuery) {
         document.getElementById('mainFrame').innerHTML = '';
         // Add heading and show results
         document.getElementById('mainFrame').innerHTML += `<h2>${libraryFileData.playlists[selectedPlaylist].name}</h2>`;
-        displaySearchResults(results, 'in library');
+        displaySearchResults(results, 'Library');
       }
     }, 1);
   }
@@ -942,13 +973,11 @@ async function searchYouTube (searchQuery) {
   if (!document.getElementById('mainFrame').innerHTML.includes('<h2>Online Search Results</h2>')) {
     document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>';
   }
-  displaySearchResults(results, 'on YouTube');
+  displaySearchResults(results, 'YouTube');
   clearInterval(loadingBarChecker);
 }
 
 function searchSoundCloud (searchQuery) {
-  console.log(`Searching SoundCloud for ${searchQuery} with API key ${soundCloudAPIKey}`);
-
   // Send https request for search
   // Define settings
   const settings = {
@@ -1002,14 +1031,12 @@ function searchSoundCloud (searchQuery) {
       if (!document.getElementById('mainFrame').innerHTML.includes('<h2>Online Search Results</h2>')) {
         document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>';
       }
-      displaySearchResults(formattedResults, 'on SoundCloud');
+      displaySearchResults(formattedResults, 'SoundCloud');
     });
   }).on('error', (err) => {
     console.error('SoundCloud search https request error:' + err.message);
   });
 }
-
-// TODO: Error correct duration set to 0:00, add icon for NN source
 
 function displaySearchResults (results, searchSource) {
   // Load template for item from html file
@@ -1021,7 +1048,7 @@ function displaySearchResults (results, searchSource) {
 
     // Handle no results found
     if (results.length < 1) {
-      document.getElementById('mainFrame').innerHTML += `<p>No results were found ${searchSource}.</p>`;
+      document.getElementById('mainFrame').innerHTML += `<p>No results were found (${searchSource}).</p>`;
     }
 
     // Add each of the results to the list
@@ -1041,7 +1068,7 @@ function displaySearchResults (results, searchSource) {
       } else {
         item = item.split('%CLASS%').join('lightItem');
       }
-      // Append to document and add click event listeners
+      // Append to HTML
       document.getElementById('mainFrame').innerHTML += item;
 
       // TODO: Search from YouTube and SoundCloud at the same time
@@ -1049,16 +1076,15 @@ function displaySearchResults (results, searchSource) {
 
       // A simple loop to wait until elements properly added,
       // when done add event listeners.
-      //
-      // TODO: Make this more efficient.
-      // Perhaps by storing all the elements in an array,
-      // then move this check outside of the results.forEach
+
       const readyCheck = setInterval(function () {
         if (document.getElementById('playPause-' + result.id) && document.getElementById('local-' + result.id) && document.getElementById('library-' + result.id) && document.getElementById('iconAddRemove-' + result.id)) {
+          clearInterval(readyCheck);
           document.getElementById('playPause-' + result.id).addEventListener('click', function () { playPause(result.id); });
           document.getElementById('local-' + result.id).addEventListener('click', function () { downloadDelete(result.id); });
           document.getElementById('library-' + result.id).addEventListener('click', function () { addRemoveLibrary(result.id); });
           document.getElementById('playlists-' + result.id).addEventListener('click', function () { managePlaylists(result.id, result.title); });
+          document.getElementById('rename-' + result.id).addEventListener('click', function () { renameTrack(result); });
 
           // Change button texts and icons appropriately depending on
           // if track downloaded or present in library.
@@ -1075,6 +1101,10 @@ function displaySearchResults (results, searchSource) {
             if (found === null) {
               document.getElementById('iconAddRemove-' + result.id).src = 'icons/folder.png';
               document.getElementById('iconLabelAddRemove-' + result.id).innerHTML = 'Add to library';
+              // Track was not in library,
+              // so also hide manage playlists/rename buttons
+              document.getElementById('playlists-' + result.id).remove();
+              document.getElementById('rename-' + result.id).remove();
             }
           });
 
@@ -1086,22 +1116,31 @@ function displaySearchResults (results, searchSource) {
 
           // Turn off loading bar
           document.getElementById('loadingBar').style.opacity = 0;
-
-          clearInterval(readyCheck);
         }
-      }, 5);
+      }, 10);
     });
   });
 }
 
+function renameTrack (track) {
+  promptMusicDetails(track.id, track.url, {
+    title: track.title,
+    author: track.author,
+    duration: track.duration,
+    source: track.source
+  });
+}
+
 function playPause (id) {
-  console.log('playpause');
   // If play pause is for currently playing track
   if (id === musicPlayQueue[0]) {
     if (musicIsPlaying) {
       // Pause
       context.suspend();
       musicIsPlaying = false;
+
+      // Set overlay
+      overlay.setPlaying(false);
 
       // Update icon
       document.getElementById('iconPlayerControlPlayPause').src = 'icons/play.png';
@@ -1115,6 +1154,10 @@ function playPause (id) {
       // Resume
       context.resume();
       musicIsPlaying = true;
+
+      // Set overlay
+      overlay.setPlaying(true);
+
       // Update icon
       document.getElementById('iconPlayerControlPlayPause').src = 'icons/pause.png';
       // If track is in search results, update icon and label there
@@ -1184,7 +1227,6 @@ function downloadDelete (id) {
       removeMusicFromLibraryFile(id);
     }
 
-    console.log(`Deleting: ${localMusicDirectory}\\${id}.mp3`);
     fs.unlinkSync(`${localMusicDirectory}\\${id}.mp3`);
 
     // Change UI text if track is currently shown on screen
@@ -1207,7 +1249,6 @@ function downloadDelete (id) {
     switch (src) {
       case 'YT':
         downloadYouTube(id, true, function () {
-          console.log(`YouTube download for ${id} complete.`);
         });
         break;
       case 'SC':
@@ -1271,7 +1312,6 @@ function addRemoveLibrary (id) {
     if (result === null) {
       // Is not in the library file, so add it there.
       // But first we need to confirm with the user that the details are correct.
-      console.log(`Adding to library: ${id}`);
       // Look in searchResultCache to find url
       searchResultCache.forEach((item) => {
         if (item.id === id) {
@@ -1280,7 +1320,6 @@ function addRemoveLibrary (id) {
       });
     } else {
       // Was in the library file, so remove it
-      console.log(`Removing from library: ${id}`);
       removeMusicFromLibraryFile(id);
 
       // Check if downloaded as a local file
@@ -1293,7 +1332,6 @@ function addRemoveLibrary (id) {
           title: 'Delete local file?'
         });
         if (res === 0) {
-          console.log(`Deleting: ${localMusicDirectory}\\${id}.mp3`);
           fs.unlinkSync(`${localMusicDirectory}\\${id}.mp3`);
         }
       }
@@ -1303,8 +1341,6 @@ function addRemoveLibrary (id) {
 
 function downloadYouTube (id, local, callback) {
   if (local) {
-    console.log(`Downloading from YouTube. Origin: http://www.youtube.com/watch?v=${id.substring(3)} Destination: ${localMusicDirectory}\\${id}.mp3`);
-
     const stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
       .pipe(fs.createWriteStream(`${localMusicDirectory}\\${id}.mp3`));
 
@@ -1314,8 +1350,6 @@ function downloadYouTube (id, local, callback) {
       document.getElementById('loadingBar').style.opacity = 0;
     });
   } else {
-    console.log(`Downloading from YouTube. Origin: http://www.youtube.com/watch?v=${id.substring(3)} Destination: ${streamingDirectory}\\${id}.mp3`);
-
     const stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
       .pipe(fs.createWriteStream(`${streamingDirectory}\\${id}.mp3`));
 
@@ -1328,7 +1362,6 @@ function downloadYouTube (id, local, callback) {
 }
 
 function downloadSoundCloud (id, url, local, callback) {
-  console.log(`Downloading from SoundCloud: ${id}, url: ${url}`);
   // Downloads something from soundcloud
   soundCloud.getSongInfo(url)
     .then(async song => {
@@ -1340,7 +1373,6 @@ function downloadSoundCloud (id, url, local, callback) {
         writer = stream.pipe(fs.createWriteStream(`${streamingDirectory}\\${id}.mp3`));
       }
       writer.on('finish', () => {
-        console.log(`SoundCloud download finished for ${id}`);
         // Turn off loading bar
         document.getElementById('loadingBar').style.opacity = 0;
         callback();
@@ -1349,7 +1381,7 @@ function downloadSoundCloud (id, url, local, callback) {
     .catch(console.error);
 }
 
-async function promptMusicDetails (id, url) {
+async function promptMusicDetails (id, url, renameDetails) {
   // Show details box with details
   // Opacity is to allow transition, display is to actually hide
   document.getElementById('detailsModalContainer').style.display = 'block';
@@ -1358,14 +1390,23 @@ async function promptMusicDetails (id, url) {
   let duration = '0:00';
   let source = 'NN';
   try {
-    searchResultCache.forEach(item => {
-      if (item.id === id) {
-        document.getElementById('detailsTitle').value = item.title;
-        document.getElementById('detailsArtist').value = item.author;
-        duration = item.duration;
-        source = item.source;
-      }
-    });
+    // If just renaming, details are already provided,
+    // no need to search for them
+    if (renameDetails) {
+      document.getElementById('detailsTitle').value = renameDetails.title;
+      document.getElementById('detailsArtist').value = renameDetails.author;
+      duration = renameDetails.duration;
+      source = renameDetails.source;
+    } else {
+      searchResultCache.forEach(item => {
+        if (item.id === id) {
+          document.getElementById('detailsTitle').value = item.title;
+          document.getElementById('detailsArtist').value = item.author;
+          duration = item.duration;
+          source = item.source;
+        }
+      });
+    }
   } catch (err) {
     document.getElementById('detailsTitle').value = 'Unknown';
     document.getElementById('detailsArtist').value = 'Unknown';
@@ -1391,12 +1432,12 @@ async function promptMusicDetails (id, url) {
     document.getElementById('detailsModalContainer').style.opacity = 0;
     setTimeout(function () { document.getElementById('detailsModalContainer').style.display = 'none'; }, 500);
 
-    // If source is local file, reload library
-    if (source === 'LL') {
-      // Timeout to make sure the thing gets added to library
-      // before updating UI
-      // maybe fix this, whatever
-      // async code is fun
+    // Refresh library, if source is local or was a rename operation
+    // Timeout to make sure the thing gets added to library
+    // before updating UI
+    // maybe fix this, whatever
+    // async code is fun
+    if (source === 'LL' || renameDetails) {
       setTimeout(() => {
         searchLibrary('');
       }, 1000);
@@ -1408,12 +1449,11 @@ function addMusicToLibraryFile (music) {
   // Try to prevent any data being overwritten
   const retryInterval = setInterval(function () {
     if (!isUsingLibraryFile) {
+      clearInterval(retryInterval);
       // Set this to true while modifying data, even if just in memory
       isUsingLibraryFile = true;
       // Modify the data
       libraryFileData.music['track-' + music.id] = music;
-      console.log(`Added track-${music.id} to library file.`);
-
       writeLibraryFile(function () {
         // Change UI text if track is currently shown on screen
         if (document.getElementById('iconAddRemove-' + music.id)) {
@@ -1421,7 +1461,6 @@ function addMusicToLibraryFile (music) {
           document.getElementById('iconLabelAddRemove-' + music.id).innerHTML = 'Remove from library';
         }
       });
-      clearInterval(retryInterval);
     }
   }, 50);
 }
@@ -1460,7 +1499,6 @@ function writeLibraryFile (callback) {
       isUsingLibraryFile = false;
       return console.error(err);
     }
-    console.log('Library file data written to disk.');
   });
   isUsingLibraryFile = false;
   callback();
@@ -1484,8 +1522,6 @@ function readLibraryFile (callback) {
     if (!isUsingLibraryFile) {
       clearInterval(retryInterval);
       isUsingLibraryFile = true;
-      console.log(`Reading library file (${libraryFilePath})`);
-
       fs.readFile(libraryFilePath, (err, data) => {
         if (err) throw err;
         // Try to parse, if fails, read again
@@ -1515,8 +1551,6 @@ function createLibraryFile (callback) {
     if (err) {
       console.error(err);
     }
-
-    console.log(`Library JSON file created at ${libraryFilePath}`);
   });
   isUsingLibraryFile = false;
   callback();
@@ -1524,7 +1558,6 @@ function createLibraryFile (callback) {
 
 function playMusic (id, _timestamp) {
   // This funcion plays music
-  console.log(`Playing ${id} from ${_timestamp}`);
   // Do this to make timestamp available to the progress bar updater
   // TODO: Make this better?
   timestamp = _timestamp;
@@ -1552,7 +1585,6 @@ function playMusic (id, _timestamp) {
   // Download to streaming dir if doesn't exist
   // Download to streamingDirectory, then call function again
   if (isInStreamingDir && !fs.existsSync(musicPlayingFilename)) {
-    console.log(`Downloading to streaming dir: ${id}`);
     // Determine source
     switch (id.substring(0, 2)) {
       case 'YT':
@@ -1635,6 +1667,10 @@ function playMusic (id, _timestamp) {
       document.getElementById('playerTrackArtist').innerHTML = music.author;
       document.getElementById('totalDurationlabel').innerHTML = music.duration;
 
+      // Set overlay text and duration
+      overlay.setDetails(music.title, music.author);
+      overlay.setDuration(music.duration);
+
       // Get file data via XMLHttpRequest
       request.open('GET', parser.parseFromString(musicPlayingFilename, 'text/html').body.textContent, true);
       request.responseType = 'arraybuffer';
@@ -1663,6 +1699,11 @@ function playMusic (id, _timestamp) {
           // Call resume in case still paused
           context.resume();
           musicIsPlaying = true;
+
+          // Show overlay if enabled and window not focused
+          if (settings.settings.overlayEnabled && !BrowserWindow.getFocusedWindow()) {
+            overlay.showOverlay();
+          }
 
           // Turn off loading bar
           document.getElementById('loadingBar').style.opacity = 0;
@@ -1732,7 +1773,6 @@ function playNext () {
 
   // Turn on loading bar
   document.getElementById('loadingBar').style.opacity = 1;
-  console.log('Playing next...');
   if (musicPlayQueue.length > 1) {
     musicPlayQueue.shift();
 
@@ -1794,8 +1834,6 @@ function playPrevious () {
   }
   // Turn on loading bar
   document.getElementById('loadingBar').style.opacity = 1;
-
-  console.log('Playing previous track.');
   // Play the last track in the history
 
   lastPlayedMusic.shift();
@@ -1804,7 +1842,6 @@ function playPrevious () {
 }
 
 function addToPlayHistory (id) {
-  console.log(`Adding to history: ${id}`);
   // Do not add same track multiple times
   if (!lastPlayedMusic.includes(id)) {
     lastPlayedMusic.unshift(id);
@@ -1829,7 +1866,6 @@ function addToPlayHistory (id) {
       console.error('Unable to write history file JSON!');
       return console.error(err);
     }
-    console.log('History file data written to disk.');
   });
 }
 
@@ -1957,7 +1993,6 @@ function updatePlaylistSidebar () {
                   isUsingLibraryFile = true;
                   delete libraryFileData.playlists[value.id];
                   writeLibraryFile(() => {
-                    console.log(`Deleted playlist ${value.id}`);
                     updatePlaylistSidebar();
                   });
                 }
@@ -2012,7 +2047,6 @@ function renamePlaylist (id) {
         isUsingLibraryFile = true;
         libraryFileData.playlists[id].name = newName;
         writeLibraryFile(() => {
-          console.log(`Renamed playlist ${id} to ${newName}`);
           updatePlaylistSidebar();
         });
       }
@@ -2045,7 +2079,6 @@ function createNewPlaylist (name) {
       clearInterval(awaitFile);
       isUsingLibraryFile = true;
       writeLibraryFile(() => {
-        console.log(`Created playlist with name: ${name}, id: ${playlistID}`);
         updatePlaylistSidebar();
       });
     }
@@ -2092,14 +2125,12 @@ function managePlaylists (id, title) {
             if (!libraryFileData.playlists[item.id.substring(3)].tracks.includes(id)) {
               // Add to playlist
               libraryFileData.playlists[item.id.substring(3)].tracks.push(id);
-              console.log(`Added ${id} to playlist ${item.id.substring(3)}`);
             }
           } else {
             // Check if track is in playlist when should not be
             if (libraryFileData.playlists[item.id.substring(3)].tracks.includes(id)) {
               // Remove from playlist
               libraryFileData.playlists[item.id.substring(3)].tracks.splice(libraryFileData.playlists[item.id.substring(3)].tracks.indexOf(id), 1);
-              console.log(`Removed ${id} from playlist ${item.id.substring(3)}`);
             }
           }
         });
@@ -2111,7 +2142,6 @@ function managePlaylists (id, title) {
 
         // Write to library file
         writeLibraryFile(() => {
-          console.log(`Updated playlists for ${id}`);
         });
 
         // Remove event listener with clone and replace
@@ -2156,7 +2186,6 @@ function importLibrary () {
         if (!isUsingLibraryFile) {
           clearInterval(awaitLibraryFile);
           isUsingLibraryFile = true;
-          console.log(path);
           fs.readFile(path, (err, data) => {
             if (err) throw err;
             // After reading data, parse to JSON
@@ -2183,8 +2212,6 @@ function importLibrary () {
               writeLibraryFile(() => {
                 // Turn off loading bar
                 document.getElementById('loadingBar').style.opacity = 0;
-                console.log(`Imported library from ${path}`);
-
                 // Search to show updated library
                 searchLibrary('');
               });
@@ -2226,7 +2253,6 @@ function exportLibrary () {
               isUsingLibraryFile = false;
               return console.error(err);
             }
-            console.log(`Exported library to ${path}`);
             shell.showItemInFolder(path);
             isUsingLibraryFile = false;
           });

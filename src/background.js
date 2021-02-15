@@ -44,19 +44,53 @@ app.on('ready', () => {
   }
 
   // Add shortcuts
+  // Due to issues with them not working in some cases,
+  // only trigger when main window is focused, not any window.
   // Dev tools
   globalShortcut.register('CommandOrControl+Shift+I', () => {
-    BrowserWindow.getFocusedWindow().toggleDevTools();
+    // Only trigger if focused
+    if (BrowserWindow.getFocusedWindow() === mainWindow) {
+      mainWindow.toggleDevTools();
+    }
   });
 
   // Reload
   globalShortcut.register('CommandOrControl+R', () => {
-    BrowserWindow.getFocusedWindow().webContents.reloadIgnoringCache();
+    if (BrowserWindow.getFocusedWindow() === mainWindow) {
+      mainWindow.webContents.reloadIgnoringCache();
+    }
+  });
+
+  // Media controls
+  // These are triggered regardless of window focus
+  // When media key pressed, send message to renderer process
+  globalShortcut.register('MediaPlayPause', () => {
+    mainWindow.webContents.send('mediaControlEvent', 'MediaPlayPause');
+  });
+
+  globalShortcut.register('MediaNextTrack', () => {
+    mainWindow.webContents.send('mediaControlEvent', 'MediaNextTrack');
+  });
+
+  globalShortcut.register('MediaPreviousTrack', () => {
+    mainWindow.webContents.send('mediaControlEvent', 'MediaPreviousTrack');
+  });
+
+  mainWindow.on('close', () => {
+    // When main window is closed, quit.
+    // This is required, because window-all-closed won't fire
+    // due to the overlay window being still open
+    app.quit();
   });
 });
 
 app.on('window-all-closed', () => {
   app.quit();
+});
+
+app.on('will-quit', () => {
+  // Unregister all shortcuts.
+  globalShortcut.unregisterAll();
 });
 
 // Event for available update

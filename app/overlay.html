@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body>
+  <div class="overlayContainer" id="overlayContainer">
+    <div class="overlayLeftHalf">
+      <h2 id="overlayTitle">Title</h2>
+      <p id="overlayArtist">Artist</p>
+    </div>
+    <div class="overlayRightHalf">
+      <p id="overlayDuration">Duration</p><br>
+      <div class="overlayProgressBarContainer">
+        <div class="overlayProgressBar" id="overlayProgressBar">
+        </div>
+      </div>
+      <span class="playerControl"><img class="playerControlIcon" id="overlayPlayPauseIcon" src="icons/play.png"></span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Kinda bad solution for modifying DOM, but I guess it works
+    // Done in a script tag to make 100% sure that
+    // webpack doesn't pull some stupid bs
+    require('electron').ipcRenderer.on('modifyDOM', (event, message) => {
+      if (message.property === 'innerHTML')
+      {
+        document.getElementById(message.elementId).innerHTML = message.value;
+      } else if (message.property === 'opacity') {
+        document.getElementById(message.elementId).style.opacity = message.value;
+      } else if (message.property === 'src') {
+        document.getElementById(message.elementId).src = message.value;
+      } else if (message.property === 'width') {
+        document.getElementById(message.elementId).style.width = message.value;
+      }
+    });
+  </script>
+</body>

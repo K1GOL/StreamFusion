@@ -2,6 +2,26 @@
 
 This is a log of all the changes made to StreamFusion
 
+# 1.3.0
+
+### Fixes and changes:
+
+* Keyboard shortcut changes:
+
+  * Shortcuts for reload and toggle dev tools now only work when the StreamFusion window is focused.
+
+  * Media keys now work OS-wide.
+
+* Fixed an issue where sometimes the download button would immediately try to delete the downloaded file and cause all kinds of problems.
+
+* Button to manage playlists is now not visible on tracks that aren't in your library.
+
+### New features:
+
+* StreamFusion overlay: Tells you what music you are playing, when you don't have StreamFusion focused. You can turn this off in the settings.
+
+* You can now rename tracks after adding them to your library.
+
 ## 1.2.2
 
 ### Fixes and changes:
@@ -46,7 +66,7 @@ This is a log of all the changes made to StreamFusion
 
 * You can now manually import a local audio file to StreamFusion. For the time being you can only import mp3 files.
 
-* Media keys now work when the StreamFusion window is focused. Global OS-wide support may be coming at some point, but right now the best solution would be to basically have a keylogger constantly running in the background, and I don't know about you but that seems like a slight security issue. Supported keys are:
+* Media keys now work when the StreamFusion window is focused. Supported keys are:
 
   * Play/pause
 
