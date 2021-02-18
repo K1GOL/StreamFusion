@@ -42,6 +42,8 @@ module.exports = {
       width: 400,
       height: 120,
       frame: false,
+      resizable: false,
+      movable: false,
       transparent: true,
       focusable: false,
       skipTaskbar: true,
@@ -53,7 +55,11 @@ module.exports = {
 
     // Set position to top right corner of main display and always on top
     overlayWindow.setPosition(screen.getPrimaryDisplay().workAreaSize.width - 420, 20);
-    overlayWindow.setAlwaysOnTop(true);
+    overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+
+    // Set min and max size to be the intended size to block resizing.
+    overlayWindow.setMinimumSize(400, 120);
+    overlayWindow.setMaximumSize(400, 120);
 
     // Ignore mouse clicks
     overlayWindow.setIgnoreMouseEvents(true);

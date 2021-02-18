@@ -2,6 +2,26 @@
 
 This is a log of all the changes made to StreamFusion
 
+## 1.3.1
+
+### Fixes and changes:
+
+* Shortcuts to toggle dev tools and reload now don't block keypresses in other windows. Shortcut to toggle dev tools is now Ctrl + I
+
+* Tracks now get added to your play history only if they are played for longer than 15 seconds.
+
+* Optimization.
+
+* Fixed an issue with the track control button icons flickering when searching.
+
+* Fixed a bug where spamming the enter key in the search bar would search and give the same results multiple times.
+
+* Fixed multiple issues with the loading bar being turned off too early, or not being turned on at all.
+
+* Centred the platform selector.
+
+* Fixed an overlay size bug.
+
 # 1.3.0
 
 ### Fixes and changes:

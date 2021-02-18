@@ -54,7 +54,9 @@ let libraryFileData;
 let settings;
 
 let searchResultCache = [];
+const loadingBarTracker = {};
 let isUsingLibraryFile = false;
+let searchInProgress = false;
 let soundCloudAPIKey;
 
 let musicPlayQueue = [];
@@ -133,6 +135,9 @@ function startup () {
   if (!fs.existsSync(customColorSchemeFilePath)) {
     createCustomColorFile(function () {});
   }
+
+  // Turn on loading bar
+  setLoadingBar(true, 'init-load');
 
   if (!fs.existsSync(settingsFilePath)) {
     // Read file after creation
@@ -223,9 +228,22 @@ function startup () {
     }
   });
 
+  // Add shortcuts
+  // Dev tools
+  document.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyI' && event.getModifierState('Control')) {
+      BrowserWindow.getFocusedWindow().toggleDevTools();
+    }
+  });
+
+  // Reload
+  document.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyR' && event.getModifierState('Control')) {
+      BrowserWindow.getFocusedWindow().webContents.reloadIgnoringCache();
+    }
+  });
+
   // Get API key for SoundCloud and create scraper client
-  // Turn on loading bar
-  document.getElementById('loadingBar').style.opacity = 1;
   // Disable input to prevent searches with undefined API key
   document.getElementById('searchInput').disabled = true;
 
@@ -235,18 +253,20 @@ function startup () {
     soundCloudAPIKey = key;
     soundCloud = new scraper.Client(soundCloudAPIKey);
     // Turn off loading bar
-    document.getElementById('loadingBar').style.opacity = 0;
+    setLoadingBar(false, 'init-load');
     // Enable input
     document.getElementById('searchInput').disabled = false;
   });
 
   // Add event listener to enter key pressed with search bar in focus
   document.getElementById('searchInput').addEventListener('keydown', event => {
-    // Key code for enter is 13
-    if (event.keyCode === 13) {
-      // Clear previous results and then search
-      document.getElementById('mainFrame').innerHTML = '';
-      search(document.getElementById('searchInput').value);
+    if (event.code === 'Enter') {
+      // Check that not already searching
+      if (!searchInProgress) {
+        // Clear previous results and then search
+        document.getElementById('mainFrame').innerHTML = '';
+        search(document.getElementById('searchInput').value);
+      }
     }
   });
 
@@ -560,7 +580,7 @@ function startup () {
         // Generic add event listener
         item.addEventListener('keydown', event => {
           // Key code for enter is 13
-          if (event.keyCode === 13) {
+          if (event.code === 'Enter') {
             document.getElementById(item.getAttribute('data-associatedButton')).click();
           }
         });
@@ -802,8 +822,8 @@ function libraryErrorCorrection () {
 }
 
 function search (searchQuery) {
-  // Return if empty search query
-  if (searchQuery === '') {
+  // Return if empty search query or search already in progress
+  if (searchQuery === '' || searchQuery.split(' ').join('') === '') {
     return;
   }
   // Master search function.
@@ -811,8 +831,9 @@ function search (searchQuery) {
   // depending on selected platforms
 
   // Turn on loading bar
-  document.getElementById('loadingBar').style.opacity = 1;
+  setLoadingBar(true, 'search');
 
+  searchInProgress = true;
   // Clear search cache
   // If cache includes tracks in queue, re-add those to cache
   const tempCache = [];
@@ -834,13 +855,18 @@ function search (searchQuery) {
   // Search online on selected platform
   switch (document.getElementById('searchPlatformSelect').value) {
     case 'YT':
-      searchYouTube(searchQuery);
+      searchYouTube(searchQuery, () => {
+        searchInProgress = false;
+      });
       break;
     case 'SC':
-      searchSoundCloud(searchQuery);
+      searchSoundCloud(searchQuery, () => {
+        searchInProgress = false;
+      });
       break;
     default:
       console.error('Platform select error.');
+      searchInProgress = false;
   }
 }
 
@@ -906,7 +932,7 @@ function searchLibrary (searchQuery) {
   }
 }
 
-async function searchYouTube (searchQuery) {
+async function searchYouTube (searchQuery, callback) {
   // Get YT search results
 
   // Sometimes fails, just try again
@@ -915,23 +941,9 @@ async function searchYouTube (searchQuery) {
     searchResults = await ytsr(searchQuery);
   } catch (err) {
     console.error(`YTSR error: ${err}`);
-    searchYouTube(searchQuery);
+    searchYouTube(searchQuery, () => {});
     return;
   }
-
-  // Make sure loading bar stays on
-  // Might be disabled by other code that runs faster
-  // But only do for 10 seconds, then stop
-  let iterationCount = 0;
-  const loadingBarChecker = setInterval(function () {
-    // Turn on loading bar
-    document.getElementById('loadingBar').style.opacity = 1;
-
-    iterationCount++;
-    if (iterationCount > 100) {
-      clearInterval(loadingBarChecker);
-    }
-  }, 100);
 
   // Turn first 20 results into standard format JSON
   // An array that stores the results
@@ -974,10 +986,14 @@ async function searchYouTube (searchQuery) {
     document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>';
   }
   displaySearchResults(results, 'YouTube');
-  clearInterval(loadingBarChecker);
+  // Turn off loading bar
+  setLoadingBar(false, 'search');
+
+  // Call callback when done
+  callback();
 }
 
-function searchSoundCloud (searchQuery) {
+function searchSoundCloud (searchQuery, callback) {
   // Send https request for search
   // Define settings
   const settings = {
@@ -1032,6 +1048,10 @@ function searchSoundCloud (searchQuery) {
         document.getElementById('mainFrame').innerHTML += '<h2>Online Search Results</h2>';
       }
       displaySearchResults(formattedResults, 'SoundCloud');
+      // Turn off loading bar
+      setLoadingBar(false, 'search');
+      // Call calback when done
+      callback();
     });
   }).on('error', (err) => {
     console.error('SoundCloud search https request error:' + err.message);
@@ -1068,13 +1088,45 @@ function displaySearchResults (results, searchSource) {
       } else {
         item = item.split('%CLASS%').join('lightItem');
       }
-      // Append to HTML
-      document.getElementById('mainFrame').innerHTML += item;
+
+      // Change button texts and icons appropriately depending on
+      // if track downloaded or present in library.
+
+      // Local file UI
+      if (!fs.existsSync(`${localMusicDirectory}\\${result.id}.mp3`)) {
+        item = item.split('%SRC-DOWNLOADDELETE%').join('icons/download.png');
+        item = item.split('%LABEL-DOWNLOADDELETE%').join('Download');
+      } else {
+        item = item.split('%SRC-DOWNLOADDELETE%').join('icons/delete.png');
+        item = item.split('%LABEL-DOWNLOADDELETE%').join('Delete local file');
+      }
+
+      // Play/pause UI
+      if (musicPlayQueue[0] === result.id && musicIsPlaying) {
+        item = item.split('%SRC-PLAYPAUSE%').join('icons/pause.png');
+        item = item.split('%LABEL-PLAYPAUSE%').join('Pause');
+      } else {
+        item = item.split('%SRC-PLAYPAUSE%').join('icons/play.png');
+        item = item.split('%LABEL-PLAYPAUSE%').join('Play');
+      }
+
+      // Library UI
+      findMusicById(result.id, found => {
+        if (found === null) {
+          item = item.split('%SRC-ADDREMOVELIBRARY%').join('icons/folder.png');
+          item = item.split('%LABEL-ADDREMOVELIBRARY%').join('Add to library');
+        } else {
+          item = item.split('%SRC-ADDREMOVELIBRARY%').join('icons/cross.png');
+          item = item.split('%LABEL-ADDREMOVELIBRARY%').join('Remove from library');
+        }
+        // Append to HTML
+        document.getElementById('mainFrame').innerHTML += item;
+      });
 
       // TODO: Search from YouTube and SoundCloud at the same time
       // causes event listeners to be removed from SoundCloud HTML objects.
 
-      // A simple loop to wait until elements properly added,
+      // A simple interval to wait until elements properly added,
       // when done add event listeners.
 
       const readyCheck = setInterval(function () {
@@ -1086,36 +1138,14 @@ function displaySearchResults (results, searchSource) {
           document.getElementById('playlists-' + result.id).addEventListener('click', function () { managePlaylists(result.id, result.title); });
           document.getElementById('rename-' + result.id).addEventListener('click', function () { renameTrack(result); });
 
-          // Change button texts and icons appropriately depending on
-          // if track downloaded or present in library.
-          // Defaults to downloaded and in library
-
-          // Local file UI
-          if (!fs.existsSync(`${localMusicDirectory}\\${result.id}.mp3`)) {
-            document.getElementById('iconDownloadDelete-' + result.id).src = 'icons/download.png';
-            document.getElementById('iconLabelDownloadDelete-' + result.id).innerHTML = 'Download';
-          }
-
-          // Library UI
-          findMusicById(result.id, found => {
-            if (found === null) {
-              document.getElementById('iconAddRemove-' + result.id).src = 'icons/folder.png';
-              document.getElementById('iconLabelAddRemove-' + result.id).innerHTML = 'Add to library';
+          findMusicById(result.id, (res) => {
+            if (res === null) {
               // Track was not in library,
-              // so also hide manage playlists/rename buttons
+              // so hide manage playlists/rename buttons
               document.getElementById('playlists-' + result.id).remove();
               document.getElementById('rename-' + result.id).remove();
             }
           });
-
-          // Play/pause UI
-          if (musicPlayQueue[0] === result.id && musicIsPlaying) {
-            document.getElementById('iconPlayPause-' + result.id).src = 'icons/pause.png';
-            document.getElementById('iconLabelPlayPause-' + result.id).innerHTML = 'Pause';
-          }
-
-          // Turn off loading bar
-          document.getElementById('loadingBar').style.opacity = 0;
         }
       }, 10);
     });
@@ -1174,7 +1204,7 @@ function playPause (id) {
     }
 
     // Turn on loading bar
-    document.getElementById('loadingBar').style.opacity = 1;
+    setLoadingBar(true, 'music-load');
 
     // Change UI element
     if (document.getElementById(`iconPlayPause-${id}`)) {
@@ -1202,7 +1232,7 @@ function downloadDelete (id) {
   // Only supposed to be used for the download/delete ui button
 
   // Turn on loading bar
-  document.getElementById('loadingBar').style.opacity = 1;
+  setLoadingBar(true, 'download');
 
   // Check if file is currently downloaded
   if (fs.existsSync(`${localMusicDirectory}\\${id}.mp3`)) {
@@ -1219,7 +1249,7 @@ function downloadDelete (id) {
       // Cancel
       if (res === 1) {
         // Turn off loading bar
-        document.getElementById('loadingBar').style.opacity = 0;
+        setLoadingBar(false, 'download');
         return;
       }
       // Remove from library
@@ -1237,7 +1267,7 @@ function downloadDelete (id) {
           document.getElementById('iconLabelDownloadDelete-' + result.id).innerHTML = 'Download';
 
           // Turn off loading bar
-          document.getElementById('loadingBar').style.opacity = 0;
+          setLoadingBar(false, 'download');
         }
       }
     });
@@ -1340,25 +1370,16 @@ function addRemoveLibrary (id) {
 }
 
 function downloadYouTube (id, local, callback) {
-  if (local) {
-    const stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
-      .pipe(fs.createWriteStream(`${localMusicDirectory}\\${id}.mp3`));
+  const destinationPath = (local ? `${localMusicDirectory}\\${id}.mp3` : `${streamingDirectory}\\${id}.mp3`);
 
-    stream.on('finish', function () {
-      callback();
-      // Turn off loading bar
-      document.getElementById('loadingBar').style.opacity = 0;
-    });
-  } else {
-    const stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
-      .pipe(fs.createWriteStream(`${streamingDirectory}\\${id}.mp3`));
+  const stream = ytdl(`http://www.youtube.com/watch?v=${id.substring(3)}`)
+    .pipe(fs.createWriteStream(destinationPath));
 
-    stream.on('finish', function () {
-      callback();
-      // Turn off loading bar
-      document.getElementById('loadingBar').style.opacity = 0;
-    });
-  }
+  stream.on('finish', function () {
+    callback();
+    // Turn off loading bar
+    setLoadingBar(false, 'download');
+  });
 }
 
 function downloadSoundCloud (id, url, local, callback) {
@@ -1374,7 +1395,7 @@ function downloadSoundCloud (id, url, local, callback) {
       }
       writer.on('finish', () => {
         // Turn off loading bar
-        document.getElementById('loadingBar').style.opacity = 0;
+        setLoadingBar(false, 'download');
         callback();
       });
     })
@@ -1627,7 +1648,7 @@ function playMusic (id, _timestamp) {
           title: 'File not found'
         });
         // Turn off loading bar
-        document.getElementById('loadingBar').style.opacity = 0;
+        setLoadingBar(false, 'music-load');
         break;
       default:
         console.error(`Unable to parse source: ${id}`);
@@ -1646,7 +1667,12 @@ function playMusic (id, _timestamp) {
   // Add to play history, but only if timestamp is 0,
   // (to prevent same track being added when skipping to some timestamp)
   if (_timestamp === 0) {
-    addToPlayHistory(id);
+    // Only add if listening to track for more than 15 seconds
+    setTimeout(() => {
+      if (musicPlayQueue[0] === id) {
+        addToPlayHistory(id);
+      }
+    }, 15000);
   }
 
   // Get duration of audio
@@ -1706,7 +1732,7 @@ function playMusic (id, _timestamp) {
           }
 
           // Turn off loading bar
-          document.getElementById('loadingBar').style.opacity = 0;
+          setLoadingBar(false, 'music-load');
           // context.currentTime tells how long the context has been playing
           // this audio.
           // Set this variable as a zero point reference,
@@ -1772,7 +1798,7 @@ function playNext () {
   // 3 - If this fails, play first track in library.
 
   // Turn on loading bar
-  document.getElementById('loadingBar').style.opacity = 1;
+  setLoadingBar(true, 'music-load');
   if (musicPlayQueue.length > 1) {
     musicPlayQueue.shift();
 
@@ -1833,7 +1859,7 @@ function playPrevious () {
     return;
   }
   // Turn on loading bar
-  document.getElementById('loadingBar').style.opacity = 1;
+  setLoadingBar(true, 'music-load');
   // Play the last track in the history
 
   lastPlayedMusic.shift();
@@ -2180,7 +2206,7 @@ function importLibrary () {
     // to allow setting a file association to open them with StreamFusion.
     if (path) {
       // Turn on loading bar
-      document.getElementById('loadingBar').style.opacity = 1;
+      setLoadingBar(true, 'lib-import');
 
       const awaitLibraryFile = setInterval(() => {
         if (!isUsingLibraryFile) {
@@ -2211,7 +2237,7 @@ function importLibrary () {
             setTimeout(() => {
               writeLibraryFile(() => {
                 // Turn off loading bar
-                document.getElementById('loadingBar').style.opacity = 0;
+                setLoadingBar(false, 'lib-import');
                 // Search to show updated library
                 searchLibrary('');
               });
@@ -2300,6 +2326,38 @@ function importFile () {
       });
     });
   });
+}
+
+function setLoadingBar (status, trackerId) {
+  console.log(`Set loading bar ${status} for ${trackerId}`);
+  // Turns loading bar on or off.
+  // status - true for set on, false for off.
+  // trackerId - what requested loading bar change.
+  //
+  // When status is true, add 1 for trackerId in loadingBarTracker.
+  // When status is false, remove 1 for trackerId in loadingBarTracker.
+  // When all values in loadingBarTracker are 0, bar is off, otherwise on.
+  // Check that trackerId property is not undefined
+  if (!loadingBarTracker[trackerId]) {
+    loadingBarTracker[trackerId] = 0;
+  }
+
+  // ++ or -- value
+  // -- only if it won't go below 0
+  if (status) {
+    loadingBarTracker[trackerId]++;
+  } else if (loadingBarTracker[trackerId] > 0) {
+    loadingBarTracker[trackerId]--;
+  }
+
+  // Check if all values 0 and thus loading bar need to be off
+  let sum = 0;
+  Object.entries(loadingBarTracker).forEach(([key, value]) => {
+    sum += value;
+  });
+
+  console.log(`Sum is ${sum}`);
+  (sum > 0 ? document.getElementById('loadingBar').style.opacity = 1 : document.getElementById('loadingBar').style.opacity = 0);
 }
 
 function quit () {

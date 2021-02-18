@@ -5,7 +5,7 @@
 
 import path from 'path';
 import url from 'url';
-import { app, globalShortcut, BrowserWindow, dialog } from 'electron';
+import { app, globalShortcut, dialog } from 'electron';
 import createWindow from './helpers/window';
 
 // Special module holding environment variables which you declared
@@ -42,24 +42,6 @@ app.on('ready', () => {
   if (env.name === 'development') {
     mainWindow.openDevTools();
   }
-
-  // Add shortcuts
-  // Due to issues with them not working in some cases,
-  // only trigger when main window is focused, not any window.
-  // Dev tools
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    // Only trigger if focused
-    if (BrowserWindow.getFocusedWindow() === mainWindow) {
-      mainWindow.toggleDevTools();
-    }
-  });
-
-  // Reload
-  globalShortcut.register('CommandOrControl+R', () => {
-    if (BrowserWindow.getFocusedWindow() === mainWindow) {
-      mainWindow.webContents.reloadIgnoringCache();
-    }
-  });
 
   // Media controls
   // These are triggered regardless of window focus

@@ -11,5 +11,6 @@ module.exports = {
   // callback, which is callback
   upgrade: function (fromVersion, toVersion, files) {
     // At the moment, not used for anything
+    // TODO: delet this?
   }
 };
