@@ -27,41 +27,19 @@ See [changelog.md](https://github.com/K1GOL/StreamFusion/blob/main/changelog.md)
 
 * Tidal
 
-  * Third-party APIs are available to allow search functionality, but it is uncertain if music playback can be supported.
-
 * Spotify
-
-  * Has proper API support for all required activities, however due to restrictions set by Spotify, all users will be required to log in with a Spotify account that has a valid Spotify Premium subscription.
-
-* Apple Music
-
-  * Has API support, but with Apple being Apple, enrolling in the Apple Developer Program is required to use it, which is not happening any time soon.
 
 ### Will not/cannot be supported
 
 * Amazon Music
 
-  * No public API
-
 ## Download StreamFusion
 
-StreamFusion is currently available only for Windows. Linux support might be coming at some point. Mac support will not be coming any time soon, as Apple makes running unsigned code hard, and signing your code without a computer running macOS impossible.
+StreamFusion is currently available only for Windows.
 
 Note: Your browser and Windows SmartScreen may warn you that the StreamFusion installer is not trusted. You can safely ignore these warnings.
 
 Download the latest release from the [releases page](https://github.com/K1GOL/StreamFusion/releases)
-
-## Why isn't service XYZ supported?
-
-The goal is to support as many music streaming services as possible. If you feel like one should be supported but is currently not, feel free to open a new issue in the [issues section.](https://github.com/K1GOL/StreamFusion/issues) The following information should be provided:
-* Documentation for a search API
-* Documentation for a music playback API
-* Documentation for a music download API
-
-The APIs should be provided in:
-* Preferably JavaScript, or any HTTP API
-* C#, Python
-* Least preferably any other language
 
 ## I found a bug. Can I report it?
 
@@ -90,10 +68,6 @@ To build StreamFusion in the development environment, use `npm start`.
 To build StreamFusion in the production environment, use `npm run release`. This will create an installer for you in the `dist` directory.
 
 Note: It is recommended to use `"asar": false` in the build options, as enabling archiving will break @ffplay-installer.
-
-### Do you happen to have a Spotify Premium subscription?
-
-Your help would be appreciated in testing Spotify integration.
 
 ## Other resources used
 
