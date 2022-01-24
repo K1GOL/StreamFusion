@@ -1,6 +1,5 @@
 // Has various utility functions
 const fs = require('fs');
-const https = require('https');
 
 module.exports = {
   semVerGreaterThan: function (ver1, ver2) {
@@ -78,30 +77,5 @@ module.exports = {
       }
     });
     callback();
-  },
-
-  notifyUpdateDeployment: function (oldVersion, newVersion) {
-    // This function simply notifies the server
-    // that StreamFusion has been updated.
-    // Used to track update deployment process.
-    const data = JSON.stringify({
-      fromVersion: oldVersion,
-      toVersion: newVersion
-    });
-
-    const options = {
-      hostname: 'en2d8nph54t355p.m.pipedream.net',
-      port: 443,
-      path: '/',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': data.length
-      }
-    };
-
-    const req = https.request(options);
-    req.write(data);
-    req.end();
   }
 };

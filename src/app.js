@@ -175,9 +175,6 @@ function startup () {
       if (settings.meta.lastStarted.version !== softwareVersion) {
         const lastVer = (settings.meta.lastStarted.version ? settings.meta.lastStarted.version : '0.0.0');
 
-        // Notify server about the update
-        util.notifyUpdateDeployment(lastVer, softwareVersion);
-
         // First time starting in this version,
         // show change log on about page
         showAboutPage();
